@@ -52,6 +52,48 @@ test("DevNewsView shows a visible retry path when the request fails", async () =
   assert.match(html, /href="\/noticias" data-link>Reintentar/);
 });
 
+test("DevNewsView explains a network or CORS failure", async () => {
+  const service = {
+    getTopStories: async () => {
+      throw new TypeError("Failed to fetch");
+    },
+  };
+
+  const html = await DevNewsView({}, service);
+
+  assert.match(html, /No pudimos conectar con el servicio de noticias/);
+  assert.match(html, /conexión o una restricción CORS/);
+});
+
+test("DevNewsView explains when the request times out", async () => {
+  const service = {
+    getTopStories: async () => {
+      throw new DOMException("The operation was aborted", "AbortError");
+    },
+  };
+
+  const html = await DevNewsView({}, service);
+
+  assert.match(html, /La solicitud tardó demasiado/);
+  assert.match(html, /límite de 5 segundos/);
+});
+
+test("DevNewsView includes the status of an HTTP server error", async () => {
+  const service = {
+    getTopStories: async () => {
+      const error = new Error("Service unavailable");
+      error.name = "HttpError";
+      error.status = 503;
+      throw error;
+    },
+  };
+
+  const html = await DevNewsView({}, service);
+
+  assert.match(html, /El servidor respondió con el estado 503/);
+  assert.match(html, /Inténtalo de nuevo más tarde/);
+});
+
 test("DevNewsView explains when the API returns no stories", async () => {
   const service = { getTopStories: async () => [] };
 
