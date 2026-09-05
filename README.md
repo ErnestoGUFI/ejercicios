@@ -1,9 +1,7 @@
-# Ejercicios
+# Tech catálogo
 
-Repositorio de trabajos y ejercicios académicos de desarrollo web.
+Proyecto acumulativo de Aplicaciones Web Progresivas desarrollado con JavaScript, HTML y CSS.
 
-## Entregas
+Los cambios de cada ejercicio se incorporan sobre esta misma aplicación.
 
-- [Ejercicio 3 - Mini SPA con JavaScript modular](./ejercicio-3/)
-
-Cada ejercicio se conserva en su propia carpeta para poder agregar nuevas entregas sin mezclar archivos.
+[Ver el proyecto en GitHub Pages](https://ernestogufi.github.io/ejercicios/)

@@ -1,8 +1,0 @@
-{
-  "name": "ejercicio-4-mobile-first-app-shell",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "node --test tests/*.test.mjs"
-  }
-}
