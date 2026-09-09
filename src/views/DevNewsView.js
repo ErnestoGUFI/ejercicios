@@ -1,5 +1,7 @@
 import NewsItem from "../components/NewsItem.js";
 import HackerNewsService from "../services/HackerNewsService.js";
+import PersistenceService from "../services/PersistenceService.js";
+import escapeHtml from "../utils/escapeHtml.js";
 
 function getErrorContent(error) {
   if (error?.name === "AbortError") {
@@ -33,6 +35,7 @@ function getErrorContent(error) {
 export default async function DevNewsView(
   _params = {},
   service = new HackerNewsService(),
+  persistence = new PersistenceService(),
 ) {
   try {
     const stories = await service.getTopStories();
@@ -46,13 +49,30 @@ export default async function DevNewsView(
       `;
     }
 
+    const newsSearch = persistence.getNewsSearch();
+    const normalizedSearch = newsSearch.toLocaleLowerCase("es");
+    const filteredStories = stories.filter((story) =>
+      story.title.toLocaleLowerCase("es").includes(normalizedSearch),
+    );
+
     return `
       <section class="news-view" aria-labelledby="news-title">
         <h1 id="news-title">Noticias para desarrolladores</h1>
         <p class="page-summary">Lecturas recientes sobre programación y tecnología obtenidas desde Hacker News.</p>
-        <ol class="news-list" aria-label="Noticias destacadas">
-          ${stories.map(NewsItem).join("")}
-        </ol>
+        <form class="news-search" data-news-search-form>
+          <label for="news-search">Buscar en las noticias</label>
+          <div>
+            <input id="news-search" name="news-search" type="search" value="${escapeHtml(newsSearch)}">
+            <button type="submit">Aplicar</button>
+          </div>
+        </form>
+        ${
+          filteredStories.length > 0
+            ? `<ol class="news-list" aria-label="Noticias destacadas">
+                ${filteredStories.map(NewsItem).join("")}
+              </ol>`
+            : `<p class="news-empty">No hay noticias que coincidan con la búsqueda.</p>`
+        }
       </section>
     `;
   } catch (error) {

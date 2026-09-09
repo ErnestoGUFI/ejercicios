@@ -13,9 +13,14 @@
   --color-line: #d8dee9;
   --color-brand: #1e3a5f;
   --color-brand-strong: #142a46;
+  --color-on-brand: #ffffff;
   --color-accent: #1d4ed8;
   --color-accent-soft: #eef4ff;
   --color-focus: #f59e0b;
+  --color-danger: #b42318;
+  --color-warning-bg: #fff7d6;
+  --color-warning-ink: #5f4300;
+  --color-warning-line: #e7c96b;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -26,6 +31,25 @@
   --space-8: 4rem;
   --content-width: 72rem;
   --text-width: 65ch;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #141820;
+  --color-surface: #1d2430;
+  --color-ink: #eef2f6;
+  --color-muted: #b6c2cf;
+  --color-line: #3d4654;
+  --color-brand: #242b36;
+  --color-brand-strong: #9bbcff;
+  --color-on-brand: #ffffff;
+  --color-accent: #9bbcff;
+  --color-accent-soft: #202a39;
+  --color-focus: #f9b44d;
+  --color-danger: #ffb4ab;
+  --color-warning-bg: #3a3017;
+  --color-warning-ink: #ffe49a;
+  --color-warning-line: #7a672e;
 }
 
 * {
@@ -65,4 +89,10 @@ h2 {
 code,
 pre {
   font-family: var(--font-mono);
+}
+
+button,
+input,
+select {
+  font: inherit;
 }

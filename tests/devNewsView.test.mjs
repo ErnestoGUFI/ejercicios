@@ -101,3 +101,31 @@ test("DevNewsView explains when the API returns no stories", async () => {
 
   assert.match(html, /No hay noticias disponibles en este momento/);
 });
+
+test("DevNewsView restores and applies the session news search", async () => {
+  const service = {
+    getTopStories: async () => [
+      {
+        id: 1,
+        title: "JavaScript modules in practice",
+        url: "https://example.com/javascript",
+        author: "ada",
+        publishedAt: 1_725_000_000,
+      },
+      {
+        id: 2,
+        title: "Modern CSS layout",
+        url: "https://example.com/css",
+        author: "grace",
+        publishedAt: 1_725_000_100,
+      },
+    ],
+  };
+  const persistence = { getNewsSearch: () => "javascript" };
+
+  const html = await DevNewsView({}, service, persistence);
+
+  assert.match(html, /value="javascript"/);
+  assert.match(html, /JavaScript modules in practice/);
+  assert.doesNotMatch(html, /Modern CSS layout/);
+});

@@ -18,10 +18,19 @@
         <nav aria-label="Navegación principal">
           <a href="#/" data-link>Inicio</a>
           <a href="#/noticias" data-link>Noticias</a>
+          <a href="#/persistencia" data-link>Persistencia</a>
           <a href="#/acerca" data-link>Acerca</a>
         </nav>
+        <div class="theme-control">
+          <label for="theme-select">Tema</label>
+          <select id="theme-select" aria-label="Tema de color">
+            <option value="light">Claro</option>
+            <option value="dark">Oscuro</option>
+          </select>
+        </div>
       </div>
     </header>
+    <p id="persistence-warning" class="persistence-warning" aria-live="polite" hidden></p>
     <main id="app" class="app-content" aria-live="polite" tabindex="-1"></main>
     <footer class="site-footer">
       <p>Tech catálogo</p>
