@@ -37,3 +37,25 @@ test("the persistence route renders values from the shared service", async () =>
   assert.match(html, /api/);
   assert.match(html, /2 aperturas/);
 });
+
+test("the saved resources route reads its initial list from IndexedDB", async () => {
+  const persistence = {
+    getSnapshot: () => ({ theme: "light", newsSearch: "", visits: 0 }),
+  };
+  const database = {
+    getAllResources: async () => [
+      {
+        id: "resource-1",
+        title: "Patrones de arquitectura",
+        url: "https://example.com/architecture",
+        area: "architecture",
+      },
+    ],
+  };
+  const match = resolveRoute(createRoutes(persistence, database), "/guardados");
+
+  assert.ok(match);
+  const html = await match.route.view(match.params);
+  assert.match(html, /Patrones de arquitectura/);
+  assert.match(html, /data-saved-resource-form/);
+});

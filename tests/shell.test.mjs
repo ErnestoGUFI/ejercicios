@@ -14,6 +14,7 @@ test("index keeps the app shell outside the router root", async () => {
   assert.equal((html.match(/id="app"/g) ?? []).length, 1);
   assert.match(html, /href="#\/" data-link>Inicio/);
   assert.match(html, /href="#\/noticias" data-link>Noticias/);
+  assert.match(html, /href="#\/guardados" data-link>Guardados/);
   assert.match(html, /href="#\/persistencia" data-link>Persistencia/);
   assert.match(html, /href="#\/acerca" data-link>Acerca/);
   assert.match(html, /<label for="theme-select">Tema<\/label>/);

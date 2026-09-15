@@ -3,6 +3,7 @@
 .news-view h1,
 .about-view h1,
 .persistence-view h1,
+.saved-resources-view h1,
 .not-found-view h1,
 .error-view h1 {
   margin-bottom: var(--space-3);
@@ -71,6 +72,148 @@
 .persistence-row button {
   min-height: 2.75rem;
   border-radius: 0.375rem;
+}
+
+.saved-resource-form {
+  max-width: var(--text-width);
+  margin-top: var(--space-6);
+  padding-block: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+  border-block: 1px solid var(--color-line);
+}
+
+.form-field,
+.filter-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.form-field label,
+.filter-field label {
+  font-weight: 600;
+}
+
+.form-field input,
+.form-field select,
+.filter-field select,
+.save-resource-button,
+.saved-resource-item button {
+  min-height: 2.75rem;
+  border-radius: 0.375rem;
+}
+
+.form-field input,
+.form-field select,
+.filter-field select {
+  width: 100%;
+  min-width: 0;
+  padding-inline: var(--space-3);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+}
+
+.save-resource-button {
+  padding-inline: var(--space-4);
+  color: var(--color-on-brand);
+  background: var(--color-brand);
+  border: 1px solid var(--color-brand);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.save-resource-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.form-field input:focus-visible,
+.form-field select:focus-visible,
+.filter-field select:focus-visible,
+.save-resource-button:focus-visible,
+.saved-resource-item a:focus-visible,
+.saved-resource-item button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 0.15rem;
+}
+
+.saved-resource-feedback {
+  margin: 0;
+  font-weight: 600;
+}
+
+.saved-resource-feedback[data-feedback-state="error"] {
+  color: var(--color-danger);
+}
+
+.saved-resources-section {
+  max-width: var(--text-width);
+  margin-top: var(--space-7);
+}
+
+.saved-resources-toolbar {
+  display: grid;
+  gap: var(--space-4);
+  align-items: end;
+  margin-bottom: var(--space-4);
+}
+
+.saved-resources-toolbar h2 {
+  margin: 0;
+  font-size: 1.375rem;
+}
+
+.saved-resources-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-line);
+}
+
+.saved-resource-item {
+  display: grid;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.saved-resource-item h3 {
+  margin: 0 0 var(--space-1);
+  font-size: 1.125rem;
+  line-height: 1.35;
+}
+
+.saved-resource-item h3 a {
+  color: var(--color-ink);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.2em;
+  overflow-wrap: anywhere;
+}
+
+.saved-resource-item p,
+.saved-resources-empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.saved-resource-item button {
+  justify-self: start;
+  padding-inline: var(--space-4);
+  color: var(--color-danger);
+  background: transparent;
+  border: 1px solid currentColor;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.saved-resources-empty {
+  padding-block: var(--space-5);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.saved-resources-list[aria-busy="true"] {
+  opacity: 0.6;
 }
 
 .news-search input {
@@ -211,6 +354,7 @@
   .detail-view h1,
   .news-view h1,
   .about-view h1,
+  .saved-resources-view h1,
   .not-found-view h1,
   .error-view h1 {
     margin-bottom: var(--space-4);
@@ -235,6 +379,28 @@
   }
 
   .persistence-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .saved-resource-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .saved-resource-feedback {
+    grid-column: 1 / -1;
+  }
+
+  .save-resource-button {
+    align-self: end;
+    justify-self: start;
+  }
+
+  .saved-resources-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 18rem);
+  }
+
+  .saved-resource-item {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }

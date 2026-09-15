@@ -1,9 +1,11 @@
 import showPersistenceWarning from "../components/PersistenceNotice.js";
 import PersistenceController from "../controllers/PersistenceController.js";
+import SavedResourcesController from "../controllers/SavedResourcesController.js";
 import ThemeController from "../controllers/ThemeController.js";
 import Router from "../router/router.js";
 import { createRoutes } from "../router/routes.js";
 import PersistenceService from "../services/PersistenceService.js";
+import dbService from "../services/dbService.js";
 import NotFoundView from "../views/NotFoundView.js";
 
 function readStorage(browserWindow, name) {
@@ -17,6 +19,7 @@ function readStorage(browserWindow, name) {
 export default function startApp({
   browserWindow = globalThis.window,
   browserDocument = globalThis.document,
+  database = dbService,
 } = {}) {
   const warning = browserDocument.querySelector("#persistence-warning");
   const persistence = new PersistenceService({
@@ -26,7 +29,7 @@ export default function startApp({
     onError: (mechanism) => showPersistenceWarning(warning, mechanism),
   });
   const router = new Router(
-    createRoutes(persistence),
+    createRoutes(persistence, database),
     browserDocument.querySelector("#app"),
     NotFoundView,
   );
@@ -47,6 +50,10 @@ export default function startApp({
     persistence,
     router,
     themeController,
+  }).init();
+  new SavedResourcesController({
+    document: browserDocument,
+    database,
   }).init();
   router.init();
 

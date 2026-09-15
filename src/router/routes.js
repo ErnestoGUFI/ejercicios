@@ -3,9 +3,14 @@ import AboutView from "../views/AboutView.js";
 import DevNewsView from "../views/DevNewsView.js";
 import ItemDetailView from "../views/ItemDetailView.js";
 import PersistenceView from "../views/PersistenceView.js";
+import SavedResourcesView from "../views/SavedResourcesView.js";
 import PersistenceService from "../services/PersistenceService.js";
+import dbService from "../services/dbService.js";
 
-export function createRoutes(persistence = new PersistenceService()) {
+export function createRoutes(
+  persistence = new PersistenceService(),
+  database = dbService,
+) {
   return [
     { path: "/", view: HomeView },
     {
@@ -15,6 +20,10 @@ export function createRoutes(persistence = new PersistenceService()) {
     {
       path: "/persistencia",
       view: (params) => PersistenceView(params, persistence),
+    },
+    {
+      path: "/guardados",
+      view: (params) => SavedResourcesView(params, database),
     },
     { path: "/acerca", view: AboutView },
     { path: "/item/:id", view: ItemDetailView },

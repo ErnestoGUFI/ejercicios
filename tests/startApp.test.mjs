@@ -53,7 +53,8 @@ test("startApp restores theme, registers the visit and starts the router", async
       }[selector];
     },
     addEventListener(type, listener) {
-      documentListeners[type] = listener;
+      documentListeners[type] ??= [];
+      documentListeners[type].push(listener);
     },
     get cookie() {
       return [...cookieValues.entries()].map(([key, value]) => `${key}=${value}`).join("; ");
@@ -87,7 +88,8 @@ test("startApp restores theme, registers the visit and starts the router", async
   assert.equal(cookieValues.get("tech-catalog-visits"), "1");
   assert.match(app.innerHTML, /Catálogo de tecnología/);
   assert.equal(typeof windowListeners.hashchange, "function");
-  assert.equal(typeof documentListeners.submit, "function");
+  assert.equal(documentListeners.submit.length, 2);
+  assert.equal(documentListeners.change.length, 1);
 
   const writesBeforeThemeChange = htmlWrites;
   select.value = "light";
