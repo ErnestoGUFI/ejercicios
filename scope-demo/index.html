@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Comprobación del Service Worker con scope estrecho.">
+    <title>Prueba de scope estrecho</title>
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="../styles/tokens.css">
+    <link rel="stylesheet" href="../styles/shell.css">
+    <link rel="stylesheet" href="../styles/components.css">
+    <link rel="stylesheet" href="../styles/views.css">
+  </head>
+  <body class="scope-demo-page">
+    <main class="app-content" aria-labelledby="scope-demo-title">
+      <section class="service-worker-view">
+        <h1 id="scope-demo-title">Página dentro del scope estrecho</h1>
+        <p class="page-summary">Cuando existen dos registros aplicables, el navegador elige el que tiene el scope más específico.</p>
+        <dl class="sw-status-list">
+          <div><dt>Controller actual</dt><dd><code data-scope-demo-controller>Consultando…</code></dd></div>
+          <div><dt>Scope seleccionado</dt><dd><code data-scope-demo-scope>Consultando…</code></dd></div>
+        </dl>
+        <div class="sw-actions">
+          <button class="sw-button" type="button" data-reload-scope-demo>Recargar página</button>
+          <a class="text-link" href="../#/service-worker">Volver al diagnóstico</a>
+        </div>
+        <p class="sw-feedback" data-scope-demo-feedback aria-live="polite"></p>
+      </section>
+    </main>
+    <script type="module" src="../src/pwa/scopeDemo.js"></script>
+  </body>
+</html>

@@ -59,3 +59,26 @@ test("the saved resources route reads its initial list from IndexedDB", async ()
   assert.match(html, /Patrones de arquitectura/);
   assert.match(html, /data-saved-resource-form/);
 });
+
+test("the Service Worker diagnostic is available through the existing router", async () => {
+  const diagnostics = {
+    getSnapshot: async () => ({
+      supported: false,
+      secureContext: true,
+      registered: false,
+      scope: null,
+      scriptUrl: null,
+      workerState: "Sin worker activo",
+      controlled: false,
+      controllerScriptUrl: null,
+      scopeChecks: [],
+      registrations: [],
+      narrowPageUrl: "https://example.com/scope-demo/",
+    }),
+  };
+  const match = resolveRoute(createRoutes(undefined, undefined, diagnostics), "/service-worker");
+
+  assert.ok(match);
+  const html = await match.route.view(match.params);
+  assert.match(html, /Diagnóstico de Service Worker/);
+});

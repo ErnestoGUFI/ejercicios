@@ -4,6 +4,7 @@
 .about-view h1,
 .persistence-view h1,
 .saved-resources-view h1,
+.service-worker-view h1,
 .not-found-view h1,
 .error-view h1 {
   margin-bottom: var(--space-3);
@@ -45,6 +46,7 @@
 .about-view,
 .news-view,
 .persistence-view,
+.service-worker-view,
 .not-found-view,
 .error-view {
   max-width: var(--text-width);
@@ -349,12 +351,167 @@
   color: var(--color-muted);
 }
 
+.service-worker-view {
+  max-width: 58rem;
+}
+
+.sw-status-list {
+  margin: var(--space-7) 0 var(--space-5);
+  border-top: 1px solid var(--color-line);
+}
+
+.sw-status-list > div {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-3);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.sw-status-list dt {
+  font-weight: 700;
+}
+
+.sw-status-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-muted);
+}
+
+.sw-section {
+  margin-top: var(--space-7);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-line);
+}
+
+.sw-section h2 {
+  font-size: 1.375rem;
+}
+
+.sw-section h3 {
+  margin-top: var(--space-6);
+  font-size: 1.125rem;
+}
+
+.sw-section > p {
+  max-width: var(--text-width);
+  color: var(--color-muted);
+}
+
+.sw-button {
+  min-height: 2.75rem;
+  padding-inline: var(--space-4);
+  color: var(--color-on-brand);
+  background: var(--color-brand);
+  border: 1px solid var(--color-brand);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.sw-button-secondary {
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border-color: var(--color-line);
+}
+
+.sw-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.sw-button:focus-visible,
+.sw-actions a:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 0.15rem;
+}
+
+.sw-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border-block: 1px solid var(--color-line);
+}
+
+.sw-table-wrap table {
+  width: 100%;
+  min-width: 40rem;
+  border-collapse: collapse;
+  font-size: var(--font-small);
+}
+
+.sw-table-wrap th,
+.sw-table-wrap td {
+  padding: var(--space-3);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.sw-table-wrap tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.sw-table-wrap code {
+  overflow-wrap: anywhere;
+}
+
+.sw-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+}
+
+.sw-registration-list {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.sw-registration-list > li {
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.sw-registration-list dl {
+  margin: 0;
+}
+
+.sw-registration-list dl > div {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.sw-registration-list dt {
+  font-weight: 700;
+}
+
+.sw-registration-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-muted);
+}
+
+.sw-feedback {
+  min-height: 1.65em;
+  margin-top: var(--space-5);
+  font-weight: 600;
+}
+
+.sw-feedback[data-state="error"] {
+  color: var(--color-danger);
+}
+
+.sw-empty {
+  color: var(--color-muted);
+}
+
 @media (min-width: 40rem) {
   .home-view h1,
   .detail-view h1,
   .news-view h1,
   .about-view h1,
   .saved-resources-view h1,
+  .service-worker-view h1,
   .not-found-view h1,
   .error-view h1 {
     margin-bottom: var(--space-4);
@@ -403,5 +560,11 @@
   .saved-resource-item {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
+  }
+
+  .sw-status-list > div,
+  .sw-registration-list dl > div {
+    grid-template-columns: minmax(10rem, 0.35fr) minmax(0, 1fr);
+    gap: var(--space-4);
   }
 }
