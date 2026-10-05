@@ -40,12 +40,12 @@ test("sw.js precaches the app shell during install and removes old versions on a
   const deletedCaches = [];
   const cache = {
     addAll: async (resources) => {
-      openedCaches.set("tech-catalogo-shell-v3", [...resources]);
+      openedCaches.set("tech-catalogo-shell-v4", [...resources]);
     },
   };
   const cachesObject = {
     open: async (name) => {
-      assert.equal(name, "tech-catalogo-shell-v3");
+      assert.equal(name, "tech-catalogo-shell-v4");
       return cache;
     },
     keys: async () => [
@@ -53,6 +53,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
       "tech-catalogo-shell-v1",
       "tech-catalogo-shell-v2",
       "tech-catalogo-shell-v3",
+      "tech-catalogo-shell-v4",
     ],
     delete: async (name) => {
       deletedCaches.push(name);
@@ -76,7 +77,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
   let installPromise;
   listeners.install({ waitUntil(promise) { installPromise = promise; } });
   await installPromise;
-  assert.deepEqual(openedCaches.get("tech-catalogo-shell-v3"), [
+  assert.deepEqual(openedCaches.get("tech-catalogo-shell-v4"), [
     "./",
     "./index.html",
     "./favicon.svg",
@@ -90,7 +91,11 @@ test("sw.js precaches the app shell during install and removes old versions on a
   let activatePromise;
   listeners.activate({ waitUntil(promise) { activatePromise = promise; } });
   await activatePromise;
-  assert.deepEqual(deletedCaches, ["tech-catalogo-shell-v1", "tech-catalogo-shell-v2"]);
+  assert.deepEqual(deletedCaches, [
+    "tech-catalogo-shell-v1",
+    "tech-catalogo-shell-v2",
+    "tech-catalogo-shell-v3",
+  ]);
 });
 
 async function createFetchHarness({ cachedResponse = null, networkResponse = null, putPromise } = {}) {

@@ -85,7 +85,7 @@ test("ServiceWorkerView renders Cache Storage inspection and the runtime-cache e
     }),
   }, {
     listEntries: async () => ({
-      cacheName: "tech-catalogo-shell-v3",
+      cacheName: "tech-catalogo-shell-v4",
       entries: [{
         url: "https://example.com/ejercicios/cache-demo.json?x=<script>",
         path: "/ejercicios/cache-demo.json?x=&lt;script&gt;",
@@ -96,7 +96,7 @@ test("ServiceWorkerView renders Cache Storage inspection and the runtime-cache e
   });
 
   assert.match(html, /Cache Storage/);
-  assert.match(html, /tech-catalogo-shell-v3/);
+  assert.match(html, /tech-catalogo-shell-v4/);
   assert.match(html, /cache-demo\.json/);
   assert.match(html, /data-refresh-cache/);
   assert.match(html, /data-delete-cache-entry/);
@@ -113,7 +113,7 @@ test("ServiceWorkerView shows an empty-state message when Cache Storage is empty
       registrations: [],
     }),
   }, {
-    listEntries: async () => ({ cacheName: "tech-catalogo-shell-v3", entries: [] }),
+    listEntries: async () => ({ cacheName: "tech-catalogo-shell-v4", entries: [] }),
   });
 
   assert.match(html, /La caché todavía no tiene entradas/);
@@ -131,10 +131,68 @@ test("ServiceWorkerView explains and disables the demo until the Service Worker 
       registrations: [],
     }),
   }, {
-    listEntries: async () => ({ cacheName: "tech-catalogo-shell-v3", entries: [] }),
+    listEntries: async () => ({ cacheName: "tech-catalogo-shell-v4", entries: [] }),
   });
 
   assert.match(html, /todavía no controla esta pestaña/i);
   assert.match(html, /vuelve a cargar la página/i);
   assert.match(html, /data-load-cache-demo disabled/);
+});
+
+test("ServiceWorkerView keeps the demo disabled while a new worker is waiting to activate", async () => {
+  const html = await ServiceWorkerView({}, {
+    getSnapshot: async () => ({
+      supported: true,
+      secureContext: true,
+      registered: true,
+      workerState: "installed",
+      controlled: true,
+      scopeChecks: [],
+      registrations: [],
+    }),
+  }, {
+    listEntries: async () => ({ cacheName: "tech-catalogo-shell-v4", entries: [] }),
+  });
+
+  assert.match(html, /versión del Service Worker instalada y esperando activación/i);
+  assert.match(html, /data-load-cache-demo disabled/);
+});
+
+test("ServiceWorkerView gives an accessible notice while the worker is activating", async () => {
+  const html = await ServiceWorkerView({}, {
+    getSnapshot: async () => ({
+      supported: true,
+      secureContext: true,
+      registered: true,
+      workerState: "activating",
+      controlled: true,
+      scopeChecks: [],
+      registrations: [],
+    }),
+  }, {
+    listEntries: async () => ({ cacheName: "tech-catalogo-shell-v4", entries: [] }),
+  });
+
+  assert.match(html, /Service Worker se está activando/i);
+  assert.match(html, /id="cache-control-note"/);
+  assert.match(html, /data-load-cache-demo disabled aria-describedby="cache-control-note"/);
+});
+
+test("ServiceWorkerView distinguishes a worker that is still installing", async () => {
+  const html = await ServiceWorkerView({}, {
+    getSnapshot: async () => ({
+      supported: true,
+      secureContext: true,
+      registered: true,
+      workerState: "installing",
+      controlled: false,
+      scopeChecks: [],
+      registrations: [],
+    }),
+  }, {
+    listEntries: async () => ({ cacheName: "tech-catalogo-shell-v4", entries: [] }),
+  });
+
+  assert.match(html, /se está instalando/i);
+  assert.doesNotMatch(html, /instalada y esperando activación/);
 });

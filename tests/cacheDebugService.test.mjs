@@ -27,6 +27,7 @@ test("listEntries reads the latest app cache and returns its stored request meta
         "tech-catalogo-shell-v1",
         "tech-catalogo-shell-v2",
         "tech-catalogo-shell-v3",
+        "tech-catalogo-shell-v4",
       ];
     },
     async open(name) {
@@ -38,8 +39,8 @@ test("listEntries reads the latest app cache and returns its stored request meta
 
   const snapshot = await service.listEntries();
 
-  assert.equal(snapshot.cacheName, "tech-catalogo-shell-v3");
-  assert.deepEqual(calls, ["tech-catalogo-shell-v3"]);
+  assert.equal(snapshot.cacheName, "tech-catalogo-shell-v4");
+  assert.deepEqual(calls, ["tech-catalogo-shell-v4"]);
   assert.deepEqual(snapshot.entries, [{
     url: "https://example.com/ejercicios/cache-demo.json",
     path: "/ejercicios/cache-demo.json",
@@ -60,7 +61,7 @@ test("deleteEntry removes an existing cached request and rejects unknown entries
     },
   };
   const cacheStorage = {
-    async keys() { return ["tech-catalogo-shell-v3"]; },
+    async keys() { return ["tech-catalogo-shell-v4"]; },
     async open() { return cache; },
   };
   const service = createCacheDebugService({ cacheStorage, baseUrl: "https://example.com/ejercicios/" });

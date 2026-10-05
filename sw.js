@@ -1,4 +1,4 @@
-const CACHE_VERSION = "tech-catalogo-shell-v3";
+const CACHE_VERSION = "tech-catalogo-shell-v4";
 const CACHE_PREFIX = "tech-catalogo-shell-v";
 const APP_SHELL = [
   "./",

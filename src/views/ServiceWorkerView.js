@@ -65,7 +65,34 @@ function renderCacheEntries(cacheSnapshot) {
   `;
 }
 
+function cacheDemoNotice(snapshot) {
+  if (!snapshot.supported) {
+    return "Este navegador no soporta Service Workers; la demostración de caché requiere un navegador compatible.";
+  }
+
+  if (snapshot.workerState === "installing") {
+    return "La nueva versión del Service Worker se está instalando. Espera a que termine y actualiza el estado antes de probar la caché.";
+  }
+
+  if (snapshot.workerState === "installed") {
+    return "Hay una versión del Service Worker instalada y esperando activación. Cierra otras pestañas del proyecto y vuelve a cargar la página.";
+  }
+
+  if (snapshot.workerState === "activating") {
+    return "El Service Worker se está activando. Espera a que termine y vuelve a cargar la página.";
+  }
+
+  if (!snapshot.controlled) {
+    return "El Service Worker todavía no controla esta pestaña. Vuelve a cargar la página cuando el registro esté activo para probar el almacenamiento.";
+  }
+
+  return "";
+}
+
 function renderView(snapshot, cacheSnapshot) {
+  const demoNotice = cacheDemoNotice(snapshot);
+  const canLoadDemo = snapshot.controlled && snapshot.workerState === "activated";
+
   return `
     <section class="service-worker-view" aria-labelledby="sw-title">
       <h1 id="sw-title">Diagnóstico de Service Worker</h1>
@@ -89,10 +116,10 @@ function renderView(snapshot, cacheSnapshot) {
         <p>Inspecciona la caché activa y elimina una entrada para comprobar cómo se vuelve a solicitar desde la red.</p>
         <p class="sw-cache-guide">Para comprobar un dato obsoleto, carga este JSON, cambia su contenido en el servidor sin cambiar la versión de caché y vuelve a cargarlo. Se servirá el valor guardado; después elimínalo de la lista y cárgalo otra vez para recibir el valor nuevo.</p>
         <p class="sw-cache-version">Versión actual: <code>${escapeHtml(cacheSnapshot.cacheName ?? "Sin caché activa")}</code></p>
-        ${snapshot.controlled ? "" : '<p class="sw-cache-notice" id="cache-control-note" role="status">El Service Worker todavía no controla esta pestaña. Vuelve a cargar la página cuando el registro esté activo para probar el almacenamiento.</p>'}
+        ${demoNotice ? `<p class="sw-cache-notice" id="cache-control-note" role="status">${escapeHtml(demoNotice)}</p>` : ""}
         <div class="sw-actions">
           <button class="sw-button sw-button-secondary" type="button" data-refresh-cache>Actualizar lista</button>
-          <button class="sw-button sw-button-secondary" type="button" data-load-cache-demo${snapshot.controlled ? "" : ' disabled aria-describedby="cache-control-note"'}>Cargar dato de demostración</button>
+          <button class="sw-button sw-button-secondary" type="button" data-load-cache-demo${canLoadDemo ? "" : ' disabled aria-describedby="cache-control-note"'}>Cargar dato de demostración</button>
         </div>
         ${renderCacheEntries(cacheSnapshot)}
         <pre class="sw-cache-output" data-cache-demo-output aria-live="polite">Aún no se ha solicitado el dato de demostración.</pre>
