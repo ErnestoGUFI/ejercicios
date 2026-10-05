@@ -67,3 +67,74 @@ test("ServiceWorkerView keeps diagnostic failures visible instead of breaking th
   assert.match(html, /No se pudo consultar el estado/);
   assert.match(html, /Actualizar estado/);
 });
+
+test("ServiceWorkerView renders Cache Storage inspection and the runtime-cache exercise", async () => {
+  const html = await ServiceWorkerView({}, {
+    getSnapshot: async () => ({
+      supported: true,
+      secureContext: true,
+      registered: true,
+      scope: "https://example.com/ejercicios/",
+      scriptUrl: "https://example.com/ejercicios/sw.js",
+      workerState: "activated",
+      controlled: true,
+      controllerScriptUrl: "https://example.com/ejercicios/sw.js",
+      scopeChecks: [],
+      registrations: [],
+      narrowPageUrl: "https://example.com/ejercicios/scope-demo/",
+    }),
+  }, {
+    listEntries: async () => ({
+      cacheName: "tech-catalogo-shell-v3",
+      entries: [{
+        url: "https://example.com/ejercicios/cache-demo.json?x=<script>",
+        path: "/ejercicios/cache-demo.json?x=&lt;script&gt;",
+        status: 200,
+        contentType: "application/json",
+      }],
+    }),
+  });
+
+  assert.match(html, /Cache Storage/);
+  assert.match(html, /tech-catalogo-shell-v3/);
+  assert.match(html, /cache-demo\.json/);
+  assert.match(html, /data-refresh-cache/);
+  assert.match(html, /data-delete-cache-entry/);
+  assert.match(html, /data-load-cache-demo/);
+  assert.match(html, /data-cache-demo-output/);
+  assert.match(html, /cambia su contenido en el servidor sin cambiar la versión/);
+  assert.doesNotMatch(html, /<script>/);
+});
+
+test("ServiceWorkerView shows an empty-state message when Cache Storage is empty", async () => {
+  const html = await ServiceWorkerView({}, {
+    getSnapshot: async () => ({
+      scopeChecks: [],
+      registrations: [],
+    }),
+  }, {
+    listEntries: async () => ({ cacheName: "tech-catalogo-shell-v3", entries: [] }),
+  });
+
+  assert.match(html, /La caché todavía no tiene entradas/);
+});
+
+test("ServiceWorkerView explains and disables the demo until the Service Worker controls the page", async () => {
+  const html = await ServiceWorkerView({}, {
+    getSnapshot: async () => ({
+      supported: true,
+      secureContext: true,
+      registered: true,
+      workerState: "activated",
+      controlled: false,
+      scopeChecks: [],
+      registrations: [],
+    }),
+  }, {
+    listEntries: async () => ({ cacheName: "tech-catalogo-shell-v3", entries: [] }),
+  });
+
+  assert.match(html, /todavía no controla esta pestaña/i);
+  assert.match(html, /vuelve a cargar la página/i);
+  assert.match(html, /data-load-cache-demo disabled/);
+});

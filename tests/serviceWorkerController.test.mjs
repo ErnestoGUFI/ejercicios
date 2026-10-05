@@ -6,16 +6,19 @@ import ServiceWorkerController from "../src/controllers/ServiceWorkerController.
 function createDocument() {
   const listeners = {};
   const feedback = { textContent: "", dataset: {} };
+  const demoOutput = { textContent: "" };
   const focusTargets = new Map();
   return {
     listeners,
     feedback,
+    demoOutput,
     focusTargets,
     addEventListener(type, listener) {
       listeners[type] = listener;
     },
     querySelector(selector) {
       if (selector === "[data-sw-feedback]") return feedback;
+      if (selector === "[data-cache-demo-output]") return demoOutput;
       return focusTargets.get(selector) ?? null;
     },
   };
@@ -96,4 +99,52 @@ test("ServiceWorkerController refreshes the route on demand", async () => {
 
   assert.equal(renders, 1);
   assert.equal(focused, 1);
+});
+
+test("ServiceWorkerController deletes an entry, refreshes the view and reports the result", async () => {
+  const document = createDocument();
+  const deletedUrls = [];
+  let renders = 0;
+  let focused = 0;
+  document.focusTargets.set("[data-refresh-cache]", { focus() { focused += 1; } });
+  new ServiceWorkerController({
+    document,
+    diagnostics: {},
+    cacheDebug: {
+      async deleteEntry(url) { deletedUrls.push(url); return true; },
+    },
+    router: { render: async () => { renders += 1; } },
+  }).init();
+  const button = createButton("data-delete-cache-entry");
+  button.dataset = { cacheUrl: "https://example.com/ejercicios/cache-demo.json" };
+
+  await document.listeners.click({ target: button });
+
+  assert.deepEqual(deletedUrls, [button.dataset.cacheUrl]);
+  assert.equal(renders, 1);
+  assert.equal(focused, 1);
+  assert.equal(document.feedback.dataset.state, "success");
+  assert.match(document.feedback.textContent, /entrada eliminada/i);
+});
+
+test("ServiceWorkerController loads demo data and displays it as text", async () => {
+  const document = createDocument();
+  let renders = 0;
+  let focused = 0;
+  document.focusTargets.set("[data-load-cache-demo]", { focus() { focused += 1; } });
+  new ServiceWorkerController({
+    document,
+    diagnostics: {},
+    cacheDebug: {
+      async requestDemoData() { return { revision: "actualizado" }; },
+    },
+    router: { render: async () => { renders += 1; } },
+  }).init();
+
+  await document.listeners.click({ target: createButton("data-load-cache-demo") });
+
+  assert.equal(renders, 1);
+  assert.equal(focused, 1);
+  assert.equal(document.demoOutput.textContent, '{\n  "revision": "actualizado"\n}');
+  assert.equal(document.feedback.dataset.state, "success");
 });

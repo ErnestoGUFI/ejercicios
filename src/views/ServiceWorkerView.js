@@ -1,4 +1,5 @@
 import serviceWorkerDiagnostics from "../pwa/diagnostics.js";
+import cacheDebugService from "../services/CacheDebugService.js";
 import escapeHtml from "../utils/escapeHtml.js";
 
 function yesNo(value, yes, no) {
@@ -35,7 +36,36 @@ function renderRegistrations(registrations) {
   `;
 }
 
-function renderView(snapshot) {
+function renderCacheEntries(cacheSnapshot) {
+  if (cacheSnapshot.error) {
+    return `<p class="sw-empty" role="status">No se pudo consultar Cache Storage: ${escapeHtml(cacheSnapshot.error)}</p>`;
+  }
+
+  if (cacheSnapshot.entries.length === 0) {
+    return '<p class="sw-empty" data-cache-empty>La caché todavía no tiene entradas.</p>';
+  }
+
+  return `
+    <div class="sw-table-wrap">
+      <table data-cache-entries>
+        <caption class="sr-only">Recursos almacenados en la versión actual de la caché</caption>
+        <thead><tr><th>Recurso</th><th>Estado</th><th>Tipo</th><th>Acción</th></tr></thead>
+        <tbody>
+          ${cacheSnapshot.entries.map((entry) => `
+            <tr>
+              <th scope="row"><code>${escapeHtml(entry.path)}</code></th>
+              <td>${escapeHtml(entry.status ?? "—")}</td>
+              <td>${escapeHtml(entry.contentType)}</td>
+              <td><button class="sw-button sw-button-secondary" type="button" data-delete-cache-entry data-cache-url="${escapeHtml(entry.url)}">Eliminar</button></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderView(snapshot, cacheSnapshot) {
   return `
     <section class="service-worker-view" aria-labelledby="sw-title">
       <h1 id="sw-title">Diagnóstico de Service Worker</h1>
@@ -53,6 +83,20 @@ function renderView(snapshot) {
       </dl>
 
       <button class="sw-button" type="button" data-refresh-sw>Actualizar estado</button>
+
+      <section class="sw-section" aria-labelledby="cache-storage-title">
+        <h2 id="cache-storage-title">Cache Storage</h2>
+        <p>Inspecciona la caché activa y elimina una entrada para comprobar cómo se vuelve a solicitar desde la red.</p>
+        <p class="sw-cache-guide">Para comprobar un dato obsoleto, carga este JSON, cambia su contenido en el servidor sin cambiar la versión de caché y vuelve a cargarlo. Se servirá el valor guardado; después elimínalo de la lista y cárgalo otra vez para recibir el valor nuevo.</p>
+        <p class="sw-cache-version">Versión actual: <code>${escapeHtml(cacheSnapshot.cacheName ?? "Sin caché activa")}</code></p>
+        ${snapshot.controlled ? "" : '<p class="sw-cache-notice" id="cache-control-note" role="status">El Service Worker todavía no controla esta pestaña. Vuelve a cargar la página cuando el registro esté activo para probar el almacenamiento.</p>'}
+        <div class="sw-actions">
+          <button class="sw-button sw-button-secondary" type="button" data-refresh-cache>Actualizar lista</button>
+          <button class="sw-button sw-button-secondary" type="button" data-load-cache-demo${snapshot.controlled ? "" : ' disabled aria-describedby="cache-control-note"'}>Cargar dato de demostración</button>
+        </div>
+        ${renderCacheEntries(cacheSnapshot)}
+        <pre class="sw-cache-output" data-cache-demo-output aria-live="polite">Aún no se ha solicitado el dato de demostración.</pre>
+      </section>
 
       <section class="sw-section" aria-labelledby="scope-title">
         <h2 id="scope-title">Verificador de scope</h2>
@@ -90,9 +134,16 @@ function renderView(snapshot) {
 export default async function ServiceWorkerView(
   _params = {},
   diagnostics = serviceWorkerDiagnostics,
+  cacheDebug = cacheDebugService,
 ) {
   try {
-    return renderView(await diagnostics.getSnapshot());
+    const snapshot = await diagnostics.getSnapshot();
+    const cacheSnapshot = await cacheDebug.listEntries().catch((error) => ({
+      cacheName: null,
+      entries: [],
+      error: error?.message ?? "La consulta fue rechazada.",
+    }));
+    return renderView(snapshot, cacheSnapshot);
   } catch (error) {
     return `
       <section class="service-worker-view" aria-labelledby="sw-title">
