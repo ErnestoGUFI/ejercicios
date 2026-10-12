@@ -32,3 +32,25 @@ test("every HTML entry point declares a favicon that exists", async () => {
     await access(new URL(faviconHref, htmlUrl));
   }
 });
+
+test("the SWR demonstration starts with the first published JSON value", async () => {
+  const fixture = JSON.parse(
+    await readFile(new URL("../cache-swr-demo.json", import.meta.url), "utf8"),
+  );
+
+  assert.deepEqual(fixture, {
+    revision: "swr-v1",
+    mensaje: "Dato inicial para observar la actualización en segundo plano.",
+  });
+});
+
+test("the Network First demonstration starts with its first published JSON value", async () => {
+  const fixture = JSON.parse(
+    await readFile(new URL("../cache-demo.json", import.meta.url), "utf8"),
+  );
+
+  assert.deepEqual(fixture, {
+    revision: "network-v1",
+    mensaje: "Dato inicial para comprobar la estrategia Network First.",
+  });
+});

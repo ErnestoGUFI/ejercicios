@@ -20,14 +20,17 @@ test("index keeps the app shell outside the router root", async () => {
   assert.match(html, /<label for="theme-select">Tema<\/label>/);
   assert.match(html, /<select id="theme-select"/);
   assert.match(html, /id="persistence-warning"[^>]+aria-live="polite"/);
+  assert.match(html, /<p id="network-status" class="network-status" role="status" aria-live="polite" hidden><\/p>/);
+  assert.ok(html.indexOf('id="network-status"') < html.indexOf('<main id="app"'));
 });
 
 test("the shell reserves an independent row for the persistence warning", async () => {
   const css = await readFile(new URL("../styles/shell.css", import.meta.url), "utf8");
 
-  assert.match(css, /grid-template-rows:\s*auto auto 1fr auto/);
+  assert.match(css, /grid-template-rows:\s*auto auto auto 1fr auto/);
   assert.match(css, /\.site-header\s*{[^}]*grid-row:\s*1/s);
   assert.match(css, /\.persistence-warning\s*{[^}]*grid-row:\s*2/s);
-  assert.match(css, /\.app-content\s*{[^}]*grid-row:\s*3/s);
-  assert.match(css, /\.site-footer\s*{[^}]*grid-row:\s*4/s);
+  assert.match(css, /\.network-status\s*{[^}]*grid-row:\s*3/s);
+  assert.match(css, /\.app-content\s*{[^}]*grid-row:\s*4/s);
+  assert.match(css, /\.site-footer\s*{[^}]*grid-row:\s*5/s);
 });

@@ -58,6 +58,20 @@ export default class ServiceWorkerController {
         return;
       }
 
+      const loadSwrDemoButton = event.target.closest?.("[data-load-swr-demo]");
+      if (loadSwrDemoButton) {
+        await this.run(loadSwrDemoButton, async () => {
+          const demoData = await this.cacheDebug.requestSwrDemoData();
+          await this.renderAndRestoreFocus(
+            "[data-load-swr-demo]",
+            JSON.stringify(demoData, null, 2),
+            "[data-swr-demo-output]",
+          );
+          this.setFeedback("success", "Dato SWR recibido. Solicítalo otra vez para ver la respuesta actualizada.");
+        });
+        return;
+      }
+
       const invalidButton = event.target.closest?.("[data-test-invalid-scope]");
       if (invalidButton) {
         await this.run(invalidButton, async () => {
@@ -89,10 +103,14 @@ export default class ServiceWorkerController {
     });
   }
 
-  async renderAndRestoreFocus(selector, demoContent) {
-    const previousDemoContent = this.document.querySelector("[data-cache-demo-output]")?.textContent;
+  async renderAndRestoreFocus(
+    selector,
+    demoContent,
+    outputSelector = "[data-cache-demo-output]",
+  ) {
+    const previousDemoContent = this.document.querySelector(outputSelector)?.textContent;
     await this.router.render();
-    const demoOutput = this.document.querySelector("[data-cache-demo-output]");
+    const demoOutput = this.document.querySelector(outputSelector);
     if (demoOutput && (demoContent !== undefined || previousDemoContent)) {
       demoOutput.textContent = demoContent ?? previousDemoContent;
     }

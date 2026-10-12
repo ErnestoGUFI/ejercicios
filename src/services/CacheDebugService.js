@@ -34,6 +34,14 @@ export function createCacheDebugService({
     return { cacheName, cache: await cacheStorage.open(cacheName) };
   }
 
+  async function requestDemoJson(path) {
+    const response = await fetcher(path, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`La solicitud de demostración respondió con HTTP ${response.status}.`);
+    }
+    return response.json();
+  }
+
   return {
     async listEntries() {
       const { cacheName, cache } = await getCurrentCache();
@@ -60,11 +68,11 @@ export function createCacheDebugService({
     },
 
     async requestDemoData() {
-      const response = await fetcher("./cache-demo.json", { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error(`La solicitud de demostración respondió con HTTP ${response.status}.`);
-      }
-      return response.json();
+      return requestDemoJson("./cache-demo.json");
+    },
+
+    async requestSwrDemoData() {
+      return requestDemoJson("./cache-swr-demo.json");
     },
   };
 }

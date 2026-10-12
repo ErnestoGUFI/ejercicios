@@ -1,7 +1,7 @@
 body {
   min-height: 100dvh;
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto auto 1fr auto;
 }
 
 .skip-link {
@@ -101,15 +101,26 @@ body {
   font-size: var(--font-small);
 }
 
-.app-content {
+.network-status {
   grid-row: 3;
+  width: 100%;
+  margin: 0;
+  padding: var(--space-3) max(var(--space-4), calc((100% - var(--content-width)) / 2));
+  color: var(--color-warning-ink);
+  background: var(--color-warning-bg);
+  border-bottom: 1px solid var(--color-warning-line);
+  font-size: var(--font-small);
+}
+
+.app-content {
+  grid-row: 4;
   width: min(100% - 2rem, var(--content-width));
   margin-inline: auto;
   padding-block: var(--space-6) var(--space-8);
 }
 
 .site-footer {
-  grid-row: 4;
+  grid-row: 5;
   border-top: 1px solid var(--color-line);
 }
 

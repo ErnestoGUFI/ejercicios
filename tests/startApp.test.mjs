@@ -42,6 +42,7 @@ test("startApp restores theme, registers the visit and starts the router", async
   };
   const root = { dataset: {} };
   const warning = { hidden: true, textContent: "" };
+  const networkStatus = { hidden: false, textContent: "" };
   const cookieValues = new Map();
   const browserDocument = {
     documentElement: root,
@@ -50,6 +51,7 @@ test("startApp restores theme, registers the visit and starts the router", async
         "#app": app,
         "#theme-select": select,
         "#persistence-warning": warning,
+        "#network-status": networkStatus,
       }[selector];
     },
     addEventListener(type, listener) {
@@ -67,6 +69,7 @@ test("startApp restores theme, registers the visit and starts the router", async
   };
   const browserWindow = {
     location: { hash: "#/" },
+    navigator: { onLine: true },
     localStorage: createStorage({ "tech-catalog-theme": "dark" }),
     sessionStorage: createStorage(),
     addEventListener(type, listener) {
@@ -86,7 +89,13 @@ test("startApp restores theme, registers the visit and starts the router", async
   assert.equal(root.dataset.theme, "dark");
   assert.equal(select.value, "dark");
   assert.equal(cookieValues.get("tech-catalog-visits"), "1");
+  assert.equal(networkStatus.hidden, true);
   assert.match(app.innerHTML, /Catálogo de tecnología/);
+  windowListeners.offline();
+  assert.equal(networkStatus.hidden, false);
+  assert.match(networkStatus.textContent, /Sin conexión/);
+  windowListeners.online();
+  assert.equal(networkStatus.hidden, true);
   assert.equal(typeof windowListeners.hashchange, "function");
   assert.equal(documentListeners.submit.length, 2);
   assert.equal(documentListeners.change.length, 1);

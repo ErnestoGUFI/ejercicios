@@ -28,6 +28,7 @@ test("listEntries reads the latest app cache and returns its stored request meta
         "tech-catalogo-shell-v2",
         "tech-catalogo-shell-v3",
         "tech-catalogo-shell-v4",
+        "tech-catalogo-shell-v5",
       ];
     },
     async open(name) {
@@ -39,8 +40,8 @@ test("listEntries reads the latest app cache and returns its stored request meta
 
   const snapshot = await service.listEntries();
 
-  assert.equal(snapshot.cacheName, "tech-catalogo-shell-v4");
-  assert.deepEqual(calls, ["tech-catalogo-shell-v4"]);
+  assert.equal(snapshot.cacheName, "tech-catalogo-shell-v5");
+  assert.deepEqual(calls, ["tech-catalogo-shell-v5"]);
   assert.deepEqual(snapshot.entries, [{
     url: "https://example.com/ejercicios/cache-demo.json",
     path: "/ejercicios/cache-demo.json",
@@ -61,7 +62,7 @@ test("deleteEntry removes an existing cached request and rejects unknown entries
     },
   };
   const cacheStorage = {
-    async keys() { return ["tech-catalogo-shell-v4"]; },
+    async keys() { return ["tech-catalogo-shell-v5"]; },
     async open() { return cache; },
   };
   const service = createCacheDebugService({ cacheStorage, baseUrl: "https://example.com/ejercicios/" });
@@ -86,6 +87,22 @@ test("requestDemoData bypasses the browser HTTP cache and returns the JSON respo
   assert.deepEqual(fetchCalls, [["./cache-demo.json", { cache: "no-store" }]]);
 });
 
+test("requestSwrDemoData fetches the Stale-While-Revalidate fixture", async () => {
+  const fetchCalls = [];
+  const service = createCacheDebugService({
+    cacheStorage: { async keys() { return []; } },
+    fetcher: async (...args) => {
+      fetchCalls.push(args);
+      return makeResponse('{"revision":"swr-v1"}');
+    },
+    baseUrl: "https://example.com/ejercicios/#/service-worker",
+  });
+
+  assert.equal(typeof service.requestSwrDemoData, "function");
+  assert.deepEqual(await service.requestSwrDemoData(), { revision: "swr-v1" });
+  assert.deepEqual(fetchCalls, [["./cache-swr-demo.json", { cache: "no-store" }]]);
+});
+
 test("requestDemoData reports an unsuccessful HTTP response", async () => {
   const service = createCacheDebugService({
     cacheStorage: { async keys() { return []; } },
@@ -94,4 +111,14 @@ test("requestDemoData reports an unsuccessful HTTP response", async () => {
   });
 
   await assert.rejects(service.requestDemoData(), /503/);
+});
+
+test("requestSwrDemoData reports an unsuccessful HTTP response", async () => {
+  const service = createCacheDebugService({
+    cacheStorage: { async keys() { return []; } },
+    fetcher: async () => makeResponse("Unavailable", { status: 503, contentType: "text/plain" }),
+    baseUrl: "https://example.com/ejercicios/",
+  });
+
+  await assert.rejects(service.requestSwrDemoData(), /503/);
 });

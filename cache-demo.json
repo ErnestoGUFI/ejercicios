@@ -1,4 +1,4 @@
 {
-  "revision": "actualizada",
-  "mensaje": "Dato actualizado en el servidor después del primer despliegue."
+  "revision": "network-v1",
+  "mensaje": "Dato inicial para comprobar la estrategia Network First."
 }

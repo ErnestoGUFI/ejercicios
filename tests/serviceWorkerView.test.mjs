@@ -102,7 +102,11 @@ test("ServiceWorkerView renders Cache Storage inspection and the runtime-cache e
   assert.match(html, /data-delete-cache-entry/);
   assert.match(html, /data-load-cache-demo/);
   assert.match(html, /data-cache-demo-output/);
-  assert.match(html, /cambia su contenido en el servidor sin cambiar la versión/);
+  assert.match(html, /Stale-While-Revalidate/);
+  assert.match(html, /data-load-swr-demo/);
+  assert.match(html, /data-swr-demo-output/);
+  assert.match(html, /Network First muestra el dato del servidor/);
+  assert.match(html, /primero verás la copia guardada y luego la actualización/);
   assert.doesNotMatch(html, /<script>/);
 });
 
@@ -137,6 +141,7 @@ test("ServiceWorkerView explains and disables the demo until the Service Worker 
   assert.match(html, /todavía no controla esta pestaña/i);
   assert.match(html, /vuelve a cargar la página/i);
   assert.match(html, /data-load-cache-demo disabled/);
+  assert.match(html, /data-load-swr-demo disabled/);
 });
 
 test("ServiceWorkerView keeps the demo disabled while a new worker is waiting to activate", async () => {
@@ -156,6 +161,7 @@ test("ServiceWorkerView keeps the demo disabled while a new worker is waiting to
 
   assert.match(html, /versión del Service Worker instalada y esperando activación/i);
   assert.match(html, /data-load-cache-demo disabled/);
+  assert.match(html, /data-load-swr-demo disabled/);
 });
 
 test("ServiceWorkerView gives an accessible notice while the worker is activating", async () => {

@@ -3,6 +3,7 @@ import PersistenceController from "../controllers/PersistenceController.js";
 import SavedResourcesController from "../controllers/SavedResourcesController.js";
 import ServiceWorkerController from "../controllers/ServiceWorkerController.js";
 import ThemeController from "../controllers/ThemeController.js";
+import initNetworkStatusNotice from "../components/NetworkStatusNotice.js";
 import Router from "../router/router.js";
 import { createRoutes } from "../router/routes.js";
 import PersistenceService from "../services/PersistenceService.js";
@@ -25,6 +26,11 @@ export default function startApp({
   diagnostics = serviceWorkerDiagnostics,
 } = {}) {
   const warning = browserDocument.querySelector("#persistence-warning");
+  initNetworkStatusNotice({
+    notice: browserDocument.querySelector("#network-status"),
+    eventTarget: browserWindow,
+    navigatorObject: browserWindow.navigator ?? globalThis.navigator,
+  });
   const persistence = new PersistenceService({
     localStorage: readStorage(browserWindow, "localStorage"),
     sessionStorage: readStorage(browserWindow, "sessionStorage"),

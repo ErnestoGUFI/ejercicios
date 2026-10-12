@@ -114,15 +114,17 @@ function renderView(snapshot, cacheSnapshot) {
       <section class="sw-section" aria-labelledby="cache-storage-title">
         <h2 id="cache-storage-title">Cache Storage</h2>
         <p>Inspecciona la caché activa y elimina una entrada para comprobar cómo se vuelve a solicitar desde la red.</p>
-        <p class="sw-cache-guide">Para comprobar un dato obsoleto, carga este JSON, cambia su contenido en el servidor sin cambiar la versión de caché y vuelve a cargarlo. Se servirá el valor guardado; después elimínalo de la lista y cárgalo otra vez para recibir el valor nuevo.</p>
+        <p class="sw-cache-guide">Network First muestra el dato del servidor y guarda la última respuesta. Para Stale-While-Revalidate solicita el mismo JSON dos veces: primero verás la copia guardada y luego la actualización.</p>
         <p class="sw-cache-version">Versión actual: <code>${escapeHtml(cacheSnapshot.cacheName ?? "Sin caché activa")}</code></p>
         ${demoNotice ? `<p class="sw-cache-notice" id="cache-control-note" role="status">${escapeHtml(demoNotice)}</p>` : ""}
         <div class="sw-actions">
+          <button class="sw-button sw-button-secondary" type="button" data-load-swr-demo${canLoadDemo ? "" : ' disabled aria-describedby="cache-control-note"'}>Solicitar dato Stale-While-Revalidate</button>
           <button class="sw-button sw-button-secondary" type="button" data-refresh-cache>Actualizar lista</button>
           <button class="sw-button sw-button-secondary" type="button" data-load-cache-demo${canLoadDemo ? "" : ' disabled aria-describedby="cache-control-note"'}>Cargar dato de demostración</button>
         </div>
         ${renderCacheEntries(cacheSnapshot)}
         <pre class="sw-cache-output" data-cache-demo-output aria-live="polite">Aún no se ha solicitado el dato de demostración.</pre>
+        <pre class="sw-cache-output" data-swr-demo-output aria-live="polite">Aún no se ha solicitado el dato SWR.</pre>
       </section>
 
       <section class="sw-section" aria-labelledby="scope-title">

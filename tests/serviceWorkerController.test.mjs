@@ -7,11 +7,13 @@ function createDocument() {
   const listeners = {};
   const feedback = { textContent: "", dataset: {} };
   const demoOutput = { textContent: "" };
+  const swrDemoOutput = { textContent: "" };
   const focusTargets = new Map();
   return {
     listeners,
     feedback,
     demoOutput,
+    swrDemoOutput,
     focusTargets,
     addEventListener(type, listener) {
       listeners[type] = listener;
@@ -19,6 +21,7 @@ function createDocument() {
     querySelector(selector) {
       if (selector === "[data-sw-feedback]") return feedback;
       if (selector === "[data-cache-demo-output]") return demoOutput;
+      if (selector === "[data-swr-demo-output]") return swrDemoOutput;
       return focusTargets.get(selector) ?? null;
     },
   };
@@ -146,5 +149,27 @@ test("ServiceWorkerController loads demo data and displays it as text", async ()
   assert.equal(renders, 1);
   assert.equal(focused, 1);
   assert.equal(document.demoOutput.textContent, '{\n  "revision": "actualizado"\n}');
+  assert.equal(document.feedback.dataset.state, "success");
+});
+
+test("ServiceWorkerController loads SWR data and preserves it after rerender", async () => {
+  const document = createDocument();
+  let renders = 0;
+  let focused = 0;
+  document.focusTargets.set("[data-load-swr-demo]", { focus() { focused += 1; } });
+  new ServiceWorkerController({
+    document,
+    diagnostics: {},
+    cacheDebug: {
+      async requestSwrDemoData() { return { revision: "swr-v1" }; },
+    },
+    router: { render: async () => { renders += 1; } },
+  }).init();
+
+  await document.listeners.click({ target: createButton("data-load-swr-demo") });
+
+  assert.equal(renders, 1);
+  assert.equal(focused, 1);
+  assert.equal(document.swrDemoOutput.textContent, '{\n  "revision": "swr-v1"\n}');
   assert.equal(document.feedback.dataset.state, "success");
 });

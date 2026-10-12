@@ -1,7 +1,59 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import vm from "node:vm";
+
+const expectedAppShell = [
+  "./",
+  "./index.html",
+  "./scope-demo/index.html",
+  "./favicon.svg",
+  "./styles/tokens.css",
+  "./styles/shell.css",
+  "./styles/components.css",
+  "./styles/views.css",
+  "./cache-demo.json",
+  "./cache-swr-demo.json",
+  "./src/main.js",
+  "./src/app/startApp.js",
+  "./src/components/ItemCard.js",
+  "./src/components/NewsItem.js",
+  "./src/components/NetworkStatusNotice.js",
+  "./src/components/PersistenceNotice.js",
+  "./src/controllers/PersistenceController.js",
+  "./src/controllers/SavedResourcesController.js",
+  "./src/controllers/ServiceWorkerController.js",
+  "./src/controllers/ThemeController.js",
+  "./src/data/items.js",
+  "./src/data/resourceAreas.js",
+  "./src/pwa/config.js",
+  "./src/pwa/diagnostics.js",
+  "./src/pwa/registerSW.js",
+  "./src/pwa/scopeDemo.js",
+  "./src/router/router.js",
+  "./src/router/routes.js",
+  "./src/services/CacheDebugService.js",
+  "./src/services/CookieService.js",
+  "./src/services/dbService.js",
+  "./src/services/HackerNewsService.js",
+  "./src/services/itemsService.js",
+  "./src/services/PersistenceService.js",
+  "./src/services/StorageService.js",
+  "./src/utils/escapeHtml.js",
+  "./src/utils/safeUrl.js",
+  "./src/utils/slugify.js",
+  "./src/vendor/idb.js",
+  "./src/views/AboutView.js",
+  "./src/views/DevNewsView.js",
+  "./src/views/HomeView.js",
+  "./src/views/ItemDetailView.js",
+  "./src/views/LoadingView.js",
+  "./src/views/NotFoundView.js",
+  "./src/views/PersistenceView.js",
+  "./src/views/RouterErrorView.js",
+  "./src/views/SavedResourcesView.js",
+  "./src/views/ServiceWorkerView.js",
+];
 
 test("sw.js logs its worker context and registers install, activate and fetch handlers", async () => {
   const source = await readFile(new URL("../sw.js", import.meta.url), "utf8");
@@ -18,6 +70,7 @@ test("sw.js logs its worker context and registers install, activate and fetch ha
   vm.runInNewContext(source, {
     self,
     console: { info: (...args) => logs.push(args) },
+    URL,
   });
 
   assert.deepEqual(logs, [
@@ -40,12 +93,12 @@ test("sw.js precaches the app shell during install and removes old versions on a
   const deletedCaches = [];
   const cache = {
     addAll: async (resources) => {
-      openedCaches.set("tech-catalogo-shell-v4", [...resources]);
+      openedCaches.set("tech-catalogo-shell-v5", [...resources]);
     },
   };
   const cachesObject = {
     open: async (name) => {
-      assert.equal(name, "tech-catalogo-shell-v4");
+      assert.equal(name, "tech-catalogo-shell-v5");
       return cache;
     },
     keys: async () => [
@@ -54,6 +107,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
       "tech-catalogo-shell-v2",
       "tech-catalogo-shell-v3",
       "tech-catalogo-shell-v4",
+      "tech-catalogo-shell-v5",
     ],
     delete: async (name) => {
       deletedCaches.push(name);
@@ -72,46 +126,76 @@ test("sw.js precaches the app shell during install and removes old versions on a
     self,
     caches: cachesObject,
     console: { info() {} },
+    URL,
   });
 
   let installPromise;
-  listeners.install({ waitUntil(promise) { installPromise = promise; } });
+  let installWaitUntilCount = 0;
+  listeners.install({ waitUntil(promise) { installWaitUntilCount += 1; installPromise = promise; } });
   await installPromise;
-  assert.deepEqual(openedCaches.get("tech-catalogo-shell-v4"), [
-    "./",
-    "./index.html",
-    "./favicon.svg",
-    "./styles/tokens.css",
-    "./styles/shell.css",
-    "./styles/components.css",
-    "./styles/views.css",
-    "./src/main.js",
-  ]);
+  assert.equal(installWaitUntilCount, 1);
+  const precacheList = openedCaches.get("tech-catalogo-shell-v5");
+  assert.deepEqual(precacheList, expectedAppShell);
+  for (const resource of expectedAppShell) {
+    await access(new URL(resource, new URL("../", import.meta.url)));
+  }
 
   let activatePromise;
-  listeners.activate({ waitUntil(promise) { activatePromise = promise; } });
+  let activateWaitUntilCount = 0;
+  listeners.activate({ waitUntil(promise) { activateWaitUntilCount += 1; activatePromise = promise; } });
   await activatePromise;
+  assert.equal(activateWaitUntilCount, 1);
   assert.deepEqual(deletedCaches, [
     "tech-catalogo-shell-v1",
     "tech-catalogo-shell-v2",
     "tech-catalogo-shell-v3",
+    "tech-catalogo-shell-v4",
   ]);
 });
 
-async function createFetchHarness({ cachedResponse = null, networkResponse = null, putPromise } = {}) {
+test("the precached scope-demo navigation keeps its own HTML entry point", async () => {
+  const scopeDemo = { source: "scope-demo" };
+  const harness = await createFetchHarness({
+    cacheEntries: new Map([
+      ["https://example.com/ejercicios/scope-demo/index.html", scopeDemo],
+    ]),
+  });
+  const event = createFetchEvent({
+    method: "GET",
+    mode: "navigate",
+    url: "https://example.com/ejercicios/scope-demo/",
+  });
+
+  harness.listeners.fetch(event);
+
+  assert.equal(await event.response(), scopeDemo);
+  assert.deepEqual(harness.matchCalls, ["https://example.com/ejercicios/scope-demo/index.html"]);
+});
+
+async function createFetchHarness({
+  cachedResponse = null,
+  cacheEntries = new Map(),
+  networkResponse = null,
+  networkError = null,
+  putPromise,
+} = {}) {
   const listeners = {};
   const logs = [];
   const matchCalls = [];
   const putCalls = [];
   const networkCalls = [];
   const cacheNames = [];
+  const storedEntries = new Map(cacheEntries);
   const cache = {
     async match(key) {
-      matchCalls.push(typeof key === "string" ? key : key.url);
-      return cachedResponse;
+      const cacheKey = typeof key === "string" ? key : key.url;
+      matchCalls.push(cacheKey);
+      return storedEntries.get(cacheKey) ?? cachedResponse;
     },
     async put(key, response) {
-      putCalls.push({ key: typeof key === "string" ? key : key.url, response });
+      const cacheKey = typeof key === "string" ? key : key.url;
+      putCalls.push({ key: cacheKey, response });
+      storedEntries.set(cacheKey, response);
       if (putPromise) return putPromise;
     },
   };
@@ -130,8 +214,12 @@ async function createFetchHarness({ cachedResponse = null, networkResponse = nul
     },
   };
   const fetch = async (request) => {
-    networkCalls.push(typeof request === "string" ? request : request.url);
-    return networkResponse;
+    const url = typeof request === "string" ? request : request.url;
+    networkCalls.push(url);
+    if (networkError) throw networkError;
+    return typeof networkResponse === "function"
+      ? networkResponse(url, networkCalls.length)
+      : networkResponse;
   };
   const source = await readFile(new URL("../sw.js", import.meta.url), "utf8");
   vm.runInNewContext(source, {
@@ -140,6 +228,7 @@ async function createFetchHarness({ cachedResponse = null, networkResponse = nul
     fetch,
     console: { info: (...args) => logs.push(args) },
     URL,
+    Response,
   });
 
   return {
@@ -149,6 +238,7 @@ async function createFetchHarness({ cachedResponse = null, networkResponse = nul
     putCalls,
     networkCalls,
     cacheNames,
+    storedEntries,
   };
 }
 
@@ -257,7 +347,7 @@ test("fetch stores a successful MISS with a cloned response and waitUntil", asyn
   assert.equal(lifetimeFinished, true);
 });
 
-test("fetch does not cache an unsuccessful network response", async () => {
+test("an unsuccessful network response is replaced by a controlled 503 when no copy exists", async () => {
   const networkResponse = { ok: false, status: 503 };
   const harness = await createFetchHarness({ networkResponse });
   const event = createFetchEvent({
@@ -268,10 +358,12 @@ test("fetch does not cache an unsuccessful network response", async () => {
 
   harness.listeners.fetch(event);
 
-  assert.equal(await event.response(), networkResponse);
+  const response = await event.response();
   await event.waitForLifetime();
+  assert.ok(response instanceof Response);
+  assert.equal(response.status, 503);
+  assert.match(response.headers.get("content-type"), /application\/json/);
   assert.deepEqual(harness.putCalls, []);
-  assert.equal(event.waitUntilCount, 1);
 });
 
 test("fetch serves every navigation from the single cached App Shell entry", async () => {
@@ -288,4 +380,143 @@ test("fetch serves every navigation from the single cached App Shell entry", asy
   assert.equal(await event.response(), cachedResponse);
   assert.deepEqual(harness.matchCalls, ["https://example.com/ejercicios/index.html"]);
   assert.deepEqual(harness.networkCalls, []);
+});
+
+function cachedValue(value) {
+  return {
+    ok: true,
+    value,
+    clone() {
+      return cachedValue(value);
+    },
+  };
+}
+
+test("fetch applies Network First to the demo JSON and stores the newest response", async () => {
+  const url = "https://example.com/ejercicios/cache-demo.json";
+  const previous = cachedValue("network-v1");
+  const latest = cachedValue("network-v2");
+  const harness = await createFetchHarness({
+    cacheEntries: new Map([[url, previous]]),
+    networkResponse: latest,
+  });
+  const event = createFetchEvent({ method: "GET", mode: "cors", url });
+
+  harness.listeners.fetch(event);
+
+  assert.equal(await event.response(), latest);
+  assert.deepEqual(harness.networkCalls, [url]);
+  assert.equal(harness.storedEntries.get(url).value, "network-v2");
+});
+
+test("Network First returns the last cached response when the network is offline", async () => {
+  const url = "https://example.com/ejercicios/cache-demo.json";
+  const previous = cachedValue("network-v1");
+  const harness = await createFetchHarness({
+    cacheEntries: new Map([[url, previous]]),
+    networkError: new TypeError("offline"),
+  });
+  const event = createFetchEvent({ method: "GET", mode: "cors", url });
+
+  harness.listeners.fetch(event);
+
+  assert.equal(await event.response(), previous);
+  assert.deepEqual(harness.networkCalls, [url]);
+});
+
+test("Network First uses its cached copy for an unsuccessful HTTP response", async () => {
+  const url = "https://example.com/ejercicios/cache-demo.json";
+  const previous = cachedValue("network-v1");
+  const harness = await createFetchHarness({
+    cacheEntries: new Map([[url, previous]]),
+    networkResponse: { ok: false, status: 502 },
+  });
+  const event = createFetchEvent({ method: "GET", mode: "cors", url });
+
+  harness.listeners.fetch(event);
+
+  assert.equal(await event.response(), previous);
+  assert.deepEqual(harness.networkCalls, [url]);
+  assert.deepEqual(harness.putCalls, []);
+});
+
+test("an uncached request returns a typed 503 when its network request fails", async () => {
+  const url = "https://example.com/ejercicios/src/main.js";
+  const harness = await createFetchHarness({ networkError: new TypeError("offline") });
+  const event = createFetchEvent({ method: "GET", mode: "cors", url });
+
+  harness.listeners.fetch(event);
+
+  const response = await event.response().catch((error) => error);
+  await event.waitForLifetime().catch(() => {});
+  assert.ok(response instanceof Response, "the Service Worker returns a Response instead of rejecting");
+  assert.equal(response.status, 503);
+  assert.match(response.headers.get("content-type"), /application\/(json|problem\+json)|text\/plain/);
+  assert.ok((await response.text()).length > 0);
+});
+
+test("an uncached offline navigation returns a readable HTML 503", async () => {
+  const harness = await createFetchHarness({ networkError: new TypeError("offline") });
+  const event = createFetchEvent({
+    method: "GET",
+    mode: "navigate",
+    url: "https://example.com/ejercicios/acerca",
+  });
+
+  harness.listeners.fetch(event);
+
+  const response = await event.response();
+  assert.equal(response.status, 503);
+  assert.match(response.headers.get("content-type"), /text\/html/);
+  assert.match(await response.text(), /no está disponible sin conexión/);
+});
+
+test("Stale-While-Revalidate returns stale data first and refreshed data next", async () => {
+  const url = "https://example.com/ejercicios/cache-swr-demo.json";
+  let networkRevision = 1;
+  const harness = await createFetchHarness({
+    cacheEntries: new Map([[url, cachedValue("swr-v1")]]),
+    networkResponse: () => cachedValue(`swr-v${++networkRevision}`),
+  });
+  const first = createFetchEvent({ method: "GET", mode: "cors", url });
+
+  harness.listeners.fetch(first);
+
+  assert.equal((await first.response())?.value, "swr-v1");
+  assert.deepEqual(harness.networkCalls, [url]);
+  await first.waitForLifetime();
+  assert.equal(harness.storedEntries.get(url).value, "swr-v2");
+
+  const second = createFetchEvent({ method: "GET", mode: "cors", url });
+  harness.listeners.fetch(second);
+  assert.equal((await second.response())?.value, "swr-v2");
+  await second.waitForLifetime();
+});
+
+test("Stale-While-Revalidate fills an empty cache from the network", async () => {
+  const url = "https://example.com/ejercicios/cache-swr-demo.json";
+  const latest = cachedValue("swr-v1");
+  const harness = await createFetchHarness({ networkResponse: latest });
+  const event = createFetchEvent({ method: "GET", mode: "cors", url });
+
+  harness.listeners.fetch(event);
+
+  assert.equal((await event.response())?.value, "swr-v1");
+  await event.waitForLifetime();
+  assert.deepEqual(harness.networkCalls, [url]);
+  assert.equal(harness.putCalls.length, 1);
+  assert.equal(harness.storedEntries.get(url).value, "swr-v1");
+});
+
+test("fetch applies Network First to the allowlisted Hacker News origin only", async () => {
+  const url = "https://hacker-news.firebaseio.com/v0/topstories.json";
+  const latest = cachedValue("online");
+  const harness = await createFetchHarness({ networkResponse: latest });
+  const allowed = createFetchEvent({ method: "GET", mode: "cors", url });
+
+  harness.listeners.fetch(allowed);
+
+  assert.equal(allowed.wasIntercepted, true);
+  assert.equal(await allowed.response(), latest);
+  assert.deepEqual(harness.networkCalls, [url]);
 });
