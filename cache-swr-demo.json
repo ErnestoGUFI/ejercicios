@@ -1,4 +1,4 @@
 {
-  "revision": "swr-v1",
-  "mensaje": "Dato inicial para observar la actualización en segundo plano."
+  "revision": "swr-v2",
+  "mensaje": "Dato actualizado en segundo despliegue para validar Stale-While-Revalidate."
 }

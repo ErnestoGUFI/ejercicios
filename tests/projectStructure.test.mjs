@@ -33,24 +33,24 @@ test("every HTML entry point declares a favicon that exists", async () => {
   }
 });
 
-test("the SWR demonstration starts with the first published JSON value", async () => {
+test("the SWR demonstration contains the second published JSON value", async () => {
   const fixture = JSON.parse(
     await readFile(new URL("../cache-swr-demo.json", import.meta.url), "utf8"),
   );
 
   assert.deepEqual(fixture, {
-    revision: "swr-v1",
-    mensaje: "Dato inicial para observar la actualización en segundo plano.",
+    revision: "swr-v2",
+    mensaje: "Dato actualizado en segundo despliegue para validar Stale-While-Revalidate.",
   });
 });
 
-test("the Network First demonstration starts with its first published JSON value", async () => {
+test("the Network First demonstration contains the second published JSON value", async () => {
   const fixture = JSON.parse(
     await readFile(new URL("../cache-demo.json", import.meta.url), "utf8"),
   );
 
   assert.deepEqual(fixture, {
-    revision: "network-v1",
-    mensaje: "Dato inicial para comprobar la estrategia Network First.",
+    revision: "network-v2",
+    mensaje: "Dato actualizado en segundo despliegue para validar Network First.",
   });
 });

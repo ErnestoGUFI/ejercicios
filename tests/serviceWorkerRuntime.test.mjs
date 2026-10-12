@@ -12,8 +12,6 @@ const expectedAppShell = [
   "./styles/shell.css",
   "./styles/components.css",
   "./styles/views.css",
-  "./cache-demo.json",
-  "./cache-swr-demo.json",
   "./src/main.js",
   "./src/app/startApp.js",
   "./src/components/ItemCard.js",
@@ -91,6 +89,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
   const listeners = {};
   const openedCaches = new Map();
   const deletedCaches = [];
+  const serviceWorkerScriptUrl = "https://example.com/ejercicios/sw.js";
   const cache = {
     addAll: async (resources) => {
       openedCaches.set("tech-catalogo-shell-v5", [...resources]);
@@ -116,6 +115,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
   };
   const self = {
     constructor: { name: "ServiceWorkerGlobalScope" },
+    location: { origin: "https://example.com", href: serviceWorkerScriptUrl },
     registration: { scope: "https://example.com/ejercicios/" },
     addEventListener(type, handler) {
       listeners[type] = handler;
@@ -126,6 +126,12 @@ test("sw.js precaches the app shell during install and removes old versions on a
     self,
     caches: cachesObject,
     console: { info() {} },
+    Request: class TestRequest {
+      constructor(url, options = {}) {
+        this.url = String(url);
+        this.cache = options.cache ?? "default";
+      }
+    },
     URL,
   });
 
@@ -135,7 +141,12 @@ test("sw.js precaches the app shell during install and removes old versions on a
   await installPromise;
   assert.equal(installWaitUntilCount, 1);
   const precacheList = openedCaches.get("tech-catalogo-shell-v5");
-  assert.deepEqual(precacheList, expectedAppShell);
+  assert.deepEqual(
+    precacheList.map((request) => request.url),
+    expectedAppShell.map((resource) => new URL(resource, serviceWorkerScriptUrl).href),
+  );
+  assert.ok(precacheList.every((request) => request.cache === "reload"));
+  assert.ok(precacheList.every((request) => !/\/cache-(?:swr-)?demo\.json$/.test(request.url)));
   for (const resource of expectedAppShell) {
     await access(new URL(resource, new URL("../", import.meta.url)));
   }

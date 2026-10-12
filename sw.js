@@ -12,8 +12,6 @@ const APP_SHELL = [
   "./styles/shell.css",
   "./styles/components.css",
   "./styles/views.css",
-  "./cache-demo.json",
-  "./cache-swr-demo.json",
   "./src/main.js",
   "./src/app/startApp.js",
   "./src/components/ItemCard.js",
@@ -63,8 +61,11 @@ console.info("[SW] typeof localStorage:", typeof localStorage);
 console.info("[SW] Scope:", self.registration.scope);
 
 self.addEventListener("install", (event) => {
+  const freshRequests = APP_SHELL.map((resource) =>
+    new Request(new URL(resource, self.location.href), { cache: "reload" }),
+  );
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL)),
+    caches.open(CACHE_VERSION).then((cache) => cache.addAll(freshRequests)),
   );
 });
 
