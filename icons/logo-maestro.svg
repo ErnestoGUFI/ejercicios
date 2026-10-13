@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <title>Tech catálogo</title>
+  <rect id="fondo" width="1024" height="1024" fill="#1e3a5f"/>
+  <!-- Ficha de catálogo con pestaña de índice, reducida y centrada para quedar dentro de la safe zone. -->
+  <g id="dibujo" transform="translate(512 512) scale(0.8) translate(-512 -486)">
+    <rect x="600" y="212" width="220" height="130" rx="24" fill="#f59e0b"/>
+    <rect x="192" y="300" width="640" height="460" rx="40" fill="#ffffff"/>
+    <rect x="272" y="392" width="300" height="44" rx="22" fill="#1e3a5f"/>
+    <rect x="272" y="480" width="480" height="28" rx="14" fill="#d8dee9"/>
+    <rect x="272" y="548" width="380" height="28" rx="14" fill="#d8dee9"/>
+    <circle cx="512" cy="676" r="30" fill="#1e3a5f"/>
+  </g>
+</svg>

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "tech-catalogo-shell-v5";
+const CACHE_VERSION = "tech-catalogo-shell-v6";
 const CACHE_PREFIX = "tech-catalogo-shell-v";
 const HACKER_NEWS_ORIGIN = "https://hacker-news.firebaseio.com";
 const NETWORK_FIRST_URL = new URL("./cache-demo.json", self.registration.scope).href;
@@ -7,7 +7,15 @@ const APP_SHELL = [
   "./",
   "./index.html",
   "./scope-demo/index.html",
-  "./favicon.svg",
+  "./manifest.json",
+  "./icons/favicon-32.png",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/icon-512-maskable.png",
+  "./icons/apple-touch-icon.png",
+  "./icons/splash-1170x2532.png",
+  "./screenshots/inicio-ancho.webp",
+  "./screenshots/inicio-movil.webp",
   "./styles/tokens.css",
   "./styles/shell.css",
   "./styles/components.css",

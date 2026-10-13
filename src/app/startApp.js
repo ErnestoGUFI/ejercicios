@@ -46,6 +46,7 @@ export default function startApp({
     select: browserDocument.querySelector("#theme-select"),
     root: browserDocument.documentElement,
     persistence,
+    themeColorMeta: browserDocument.querySelector('meta[name="theme-color"]'),
     eventTarget: browserWindow,
     onChange: () => {
       if (browserWindow.location.hash === "#/persistencia") router.render();

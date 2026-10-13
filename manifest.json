@@ -1,0 +1,49 @@
+{
+  "id": "/ejercicios/",
+  "name": "Tech catálogo",
+  "short_name": "TechCatálogo",
+  "description": "Catálogo de temas de desarrollo web con noticias y recursos guardados que siguen disponibles sin conexión.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#1e3a5f",
+  "background_color": "#f5f7fb",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/inicio-ancho.webp",
+      "sizes": "1280x800",
+      "type": "image/webp",
+      "form_factor": "wide",
+      "label": "Catálogo de tecnología en escritorio"
+    },
+    {
+      "src": "screenshots/inicio-movil.webp",
+      "sizes": "780x1688",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Catálogo de tecnología en el teléfono"
+    }
+  ]
+}

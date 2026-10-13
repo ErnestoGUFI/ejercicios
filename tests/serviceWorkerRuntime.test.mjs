@@ -7,7 +7,15 @@ const expectedAppShell = [
   "./",
   "./index.html",
   "./scope-demo/index.html",
-  "./favicon.svg",
+  "./manifest.json",
+  "./icons/favicon-32.png",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/icon-512-maskable.png",
+  "./icons/apple-touch-icon.png",
+  "./icons/splash-1170x2532.png",
+  "./screenshots/inicio-ancho.webp",
+  "./screenshots/inicio-movil.webp",
   "./styles/tokens.css",
   "./styles/shell.css",
   "./styles/components.css",
@@ -92,12 +100,12 @@ test("sw.js precaches the app shell during install and removes old versions on a
   const serviceWorkerScriptUrl = "https://example.com/ejercicios/sw.js";
   const cache = {
     addAll: async (resources) => {
-      openedCaches.set("tech-catalogo-shell-v5", [...resources]);
+      openedCaches.set("tech-catalogo-shell-v6", [...resources]);
     },
   };
   const cachesObject = {
     open: async (name) => {
-      assert.equal(name, "tech-catalogo-shell-v5");
+      assert.equal(name, "tech-catalogo-shell-v6");
       return cache;
     },
     keys: async () => [
@@ -107,6 +115,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
       "tech-catalogo-shell-v3",
       "tech-catalogo-shell-v4",
       "tech-catalogo-shell-v5",
+      "tech-catalogo-shell-v6",
     ],
     delete: async (name) => {
       deletedCaches.push(name);
@@ -140,7 +149,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
   listeners.install({ waitUntil(promise) { installWaitUntilCount += 1; installPromise = promise; } });
   await installPromise;
   assert.equal(installWaitUntilCount, 1);
-  const precacheList = openedCaches.get("tech-catalogo-shell-v5");
+  const precacheList = openedCaches.get("tech-catalogo-shell-v6");
   assert.deepEqual(
     precacheList.map((request) => request.url),
     expectedAppShell.map((resource) => new URL(resource, serviceWorkerScriptUrl).href),
@@ -161,6 +170,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
     "tech-catalogo-shell-v2",
     "tech-catalogo-shell-v3",
     "tech-catalogo-shell-v4",
+    "tech-catalogo-shell-v5",
   ]);
 });
 

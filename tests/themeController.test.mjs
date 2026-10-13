@@ -69,3 +69,33 @@ test("ThemeController applies a theme changed in another tab", () => {
   assert.equal(select.value, "dark");
   assert.deepEqual(changes, ["dark"]);
 });
+
+test("ThemeController keeps the browser theme color in sync with the header", () => {
+  const select = createSelect();
+  const themeColorMeta = { content: "#1e3a5f" };
+  const brandColors = { light: "#1e3a5f", dark: "#242b36" };
+  const root = {
+    dataset: {},
+    ownerDocument: {
+      defaultView: {
+        getComputedStyle: (element) => ({
+          getPropertyValue: (name) => (name === "--color-brand" ? ` ${brandColors[element.dataset.theme]}` : ""),
+        }),
+      },
+    },
+  };
+  const controller = new ThemeController({
+    select,
+    root,
+    themeColorMeta,
+    persistence: { getTheme: () => "dark", setTheme() {} },
+    eventTarget: { addEventListener() {} },
+  });
+
+  controller.init();
+  assert.equal(themeColorMeta.content, "#242b36");
+
+  select.value = "light";
+  select.dispatch("change");
+  assert.equal(themeColorMeta.content, "#1e3a5f");
+});
