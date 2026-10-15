@@ -1,4 +1,4 @@
-const CACHE_VERSION = "tech-catalogo-shell-v7";
+const CACHE_VERSION = "tech-catalogo-shell-v8";
 const CACHE_PREFIX = "tech-catalogo-shell-v";
 const HACKER_NEWS_ORIGIN = "https://hacker-news.firebaseio.com";
 const NETWORK_FIRST_URL = new URL("./cache-demo.json", self.registration.scope).href;

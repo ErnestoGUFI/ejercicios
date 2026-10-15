@@ -97,7 +97,7 @@ test("iOS and iPadOS get the Share instructions right away", () => {
   assert.equal(button.hidden, true);
   assert.equal(hint.hidden, false);
   assert.equal(hint.message.textContent, INSTALL_MESSAGES.ios);
-  assert.match(hint.message.textContent, /Compartir.*Agregar a pantalla de inicio/);
+  assert.match(hint.message.textContent, /Compartir.*Agregar a Inicio/);
 });
 
 test("other browsers get a clear message only after the grace period, and a late event replaces it", () => {

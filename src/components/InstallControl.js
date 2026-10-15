@@ -1,5 +1,5 @@
 export const INSTALL_MESSAGES = {
-  ios: "Para instalar Tech catálogo en iPhone o iPad, toca Compartir y luego «Agregar a pantalla de inicio».",
+  ios: "Para instalar Tech catálogo en iPhone o iPad, abre Compartir (en iOS 26 está en el menú ···) y elige «Agregar a Inicio».",
   unavailable: "Este navegador no ofrece instalar la app desde la página. Si ya la instalaste, ábrela desde tus aplicaciones; si no, busca «Instalar» en el menú del navegador. Todo sigue funcionando aquí.",
   dismissed: "Cancelaste la instalación. Puedes instalar la app más tarde desde el menú del navegador.",
   installed: "Tech catálogo quedó instalada. Ya puedes abrirla desde tus aplicaciones o desde la pantalla de inicio.",
