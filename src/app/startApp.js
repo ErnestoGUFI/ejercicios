@@ -4,11 +4,13 @@ import SavedResourcesController from "../controllers/SavedResourcesController.js
 import ServiceWorkerController from "../controllers/ServiceWorkerController.js";
 import ThemeController from "../controllers/ThemeController.js";
 import initNetworkStatusNotice from "../components/NetworkStatusNotice.js";
+import initInstallControl from "../components/InstallControl.js";
 import Router from "../router/router.js";
 import { createRoutes } from "../router/routes.js";
 import PersistenceService from "../services/PersistenceService.js";
 import dbService from "../services/dbService.js";
 import serviceWorkerDiagnostics from "../pwa/diagnostics.js";
+import { createInstallPrompt } from "../pwa/installPrompt.js";
 import NotFoundView from "../views/NotFoundView.js";
 
 function readStorage(browserWindow, name) {
@@ -30,6 +32,14 @@ export default function startApp({
     notice: browserDocument.querySelector("#network-status"),
     eventTarget: browserWindow,
     navigatorObject: browserWindow.navigator ?? globalThis.navigator,
+  });
+  // La instalación se escucha desde el arranque: Chrome puede ofrecerla antes de abrir cualquier vista.
+  const installPrompt = createInstallPrompt({ browserWindow }).init();
+  initInstallControl({
+    button: browserDocument.querySelector("#install-button"),
+    hint: browserDocument.querySelector("#install-hint"),
+    installPrompt,
+    storage: readStorage(browserWindow, "sessionStorage"),
   });
   const persistence = new PersistenceService({
     localStorage: readStorage(browserWindow, "localStorage"),
@@ -72,5 +82,5 @@ export default function startApp({
   }).init();
   router.init();
 
-  return { persistence, router, themeController };
+  return { installPrompt, persistence, router, themeController };
 }

@@ -97,6 +97,8 @@ test("startApp restores theme, registers the visit and starts the router", async
   windowListeners.online();
   assert.equal(networkStatus.hidden, true);
   assert.equal(typeof windowListeners.hashchange, "function");
+  assert.equal(typeof windowListeners.beforeinstallprompt, "function", "install capture starts with the app");
+  assert.equal(typeof windowListeners.appinstalled, "function");
   assert.equal(documentListeners.submit.length, 2);
   assert.equal(documentListeners.change.length, 1);
 

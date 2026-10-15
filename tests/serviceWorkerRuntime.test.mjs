@@ -22,6 +22,7 @@ const expectedAppShell = [
   "./styles/views.css",
   "./src/main.js",
   "./src/app/startApp.js",
+  "./src/components/InstallControl.js",
   "./src/components/ItemCard.js",
   "./src/components/NewsItem.js",
   "./src/components/NetworkStatusNotice.js",
@@ -34,6 +35,7 @@ const expectedAppShell = [
   "./src/data/resourceAreas.js",
   "./src/pwa/config.js",
   "./src/pwa/diagnostics.js",
+  "./src/pwa/installPrompt.js",
   "./src/pwa/registerSW.js",
   "./src/pwa/scopeDemo.js",
   "./src/router/router.js",
@@ -100,12 +102,12 @@ test("sw.js precaches the app shell during install and removes old versions on a
   const serviceWorkerScriptUrl = "https://example.com/ejercicios/sw.js";
   const cache = {
     addAll: async (resources) => {
-      openedCaches.set("tech-catalogo-shell-v6", [...resources]);
+      openedCaches.set("tech-catalogo-shell-v7", [...resources]);
     },
   };
   const cachesObject = {
     open: async (name) => {
-      assert.equal(name, "tech-catalogo-shell-v6");
+      assert.equal(name, "tech-catalogo-shell-v7");
       return cache;
     },
     keys: async () => [
@@ -116,6 +118,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
       "tech-catalogo-shell-v4",
       "tech-catalogo-shell-v5",
       "tech-catalogo-shell-v6",
+      "tech-catalogo-shell-v7",
     ],
     delete: async (name) => {
       deletedCaches.push(name);
@@ -149,7 +152,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
   listeners.install({ waitUntil(promise) { installWaitUntilCount += 1; installPromise = promise; } });
   await installPromise;
   assert.equal(installWaitUntilCount, 1);
-  const precacheList = openedCaches.get("tech-catalogo-shell-v6");
+  const precacheList = openedCaches.get("tech-catalogo-shell-v7");
   assert.deepEqual(
     precacheList.map((request) => request.url),
     expectedAppShell.map((resource) => new URL(resource, serviceWorkerScriptUrl).href),
@@ -171,6 +174,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
     "tech-catalogo-shell-v3",
     "tech-catalogo-shell-v4",
     "tech-catalogo-shell-v5",
+    "tech-catalogo-shell-v6",
   ]);
 });
 
