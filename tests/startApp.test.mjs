@@ -73,7 +73,10 @@ test("startApp restores theme, registers the visit and starts the router", async
     localStorage: createStorage({ "tech-catalog-theme": "dark" }),
     sessionStorage: createStorage(),
     addEventListener(type, listener) {
-      windowListeners[type] = listener;
+      const previous = windowListeners[type];
+      windowListeners[type] = previous
+        ? (...args) => { previous(...args); listener(...args); }
+        : listener;
     },
   };
   globalThis.window = browserWindow;
@@ -83,7 +86,7 @@ test("startApp restores theme, registers the visit and starts the router", async
     globalThis.document = previousDocument;
   });
 
-  const { router } = startApp({ browserWindow, browserDocument });
+  const { outboxSync, router } = startApp({ browserWindow, browserDocument });
   await new Promise((resolve) => setImmediate(resolve));
 
   assert.equal(root.dataset.theme, "dark");
@@ -99,7 +102,8 @@ test("startApp restores theme, registers the visit and starts the router", async
   assert.equal(typeof windowListeners.hashchange, "function");
   assert.equal(typeof windowListeners.beforeinstallprompt, "function", "install capture starts with the app");
   assert.equal(typeof windowListeners.appinstalled, "function");
-  assert.equal(documentListeners.submit.length, 2);
+  assert.equal(outboxSync.mode, "plan-b", "a window without SyncManager starts the outbox in plan B");
+  assert.equal(documentListeners.submit.length, 3);
   assert.equal(documentListeners.change.length, 1);
 
   const writesBeforeThemeChange = htmlWrites;

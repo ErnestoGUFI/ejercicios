@@ -29,6 +29,7 @@ const expectedAppShell = [
   "./src/components/PersistenceNotice.js",
   "./src/controllers/PersistenceController.js",
   "./src/controllers/SavedResourcesController.js",
+  "./src/controllers/SuggestionsController.js",
   "./src/controllers/ServiceWorkerController.js",
   "./src/controllers/ThemeController.js",
   "./src/data/items.js",
@@ -36,6 +37,7 @@ const expectedAppShell = [
   "./src/pwa/config.js",
   "./src/pwa/diagnostics.js",
   "./src/pwa/installPrompt.js",
+  "./src/pwa/outboxSync.js",
   "./src/pwa/registerSW.js",
   "./src/pwa/scopeDemo.js",
   "./src/router/router.js",
@@ -61,6 +63,7 @@ const expectedAppShell = [
   "./src/views/RouterErrorView.js",
   "./src/views/SavedResourcesView.js",
   "./src/views/ServiceWorkerView.js",
+  "./src/views/SuggestionsView.js",
 ];
 
 test("sw.js logs its worker context and registers install, activate and fetch handlers", async () => {
@@ -102,12 +105,12 @@ test("sw.js precaches the app shell during install and removes old versions on a
   const serviceWorkerScriptUrl = "https://example.com/ejercicios/sw.js";
   const cache = {
     addAll: async (resources) => {
-      openedCaches.set("tech-catalogo-shell-v8", [...resources]);
+      openedCaches.set("tech-catalogo-shell-v9", [...resources]);
     },
   };
   const cachesObject = {
     open: async (name) => {
-      assert.equal(name, "tech-catalogo-shell-v8");
+      assert.equal(name, "tech-catalogo-shell-v9");
       return cache;
     },
     keys: async () => [
@@ -120,6 +123,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
       "tech-catalogo-shell-v6",
       "tech-catalogo-shell-v7",
       "tech-catalogo-shell-v8",
+      "tech-catalogo-shell-v9",
     ],
     delete: async (name) => {
       deletedCaches.push(name);
@@ -153,7 +157,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
   listeners.install({ waitUntil(promise) { installWaitUntilCount += 1; installPromise = promise; } });
   await installPromise;
   assert.equal(installWaitUntilCount, 1);
-  const precacheList = openedCaches.get("tech-catalogo-shell-v8");
+  const precacheList = openedCaches.get("tech-catalogo-shell-v9");
   assert.deepEqual(
     precacheList.map((request) => request.url),
     expectedAppShell.map((resource) => new URL(resource, serviceWorkerScriptUrl).href),
@@ -177,6 +181,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
     "tech-catalogo-shell-v5",
     "tech-catalogo-shell-v6",
     "tech-catalogo-shell-v7",
+    "tech-catalogo-shell-v8",
   ]);
 });
 

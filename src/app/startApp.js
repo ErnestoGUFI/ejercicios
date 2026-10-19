@@ -1,6 +1,7 @@
 import showPersistenceWarning from "../components/PersistenceNotice.js";
 import PersistenceController from "../controllers/PersistenceController.js";
 import SavedResourcesController from "../controllers/SavedResourcesController.js";
+import SuggestionsController from "../controllers/SuggestionsController.js";
 import ServiceWorkerController from "../controllers/ServiceWorkerController.js";
 import ThemeController from "../controllers/ThemeController.js";
 import initNetworkStatusNotice from "../components/NetworkStatusNotice.js";
@@ -11,6 +12,7 @@ import PersistenceService from "../services/PersistenceService.js";
 import dbService from "../services/dbService.js";
 import serviceWorkerDiagnostics from "../pwa/diagnostics.js";
 import { createInstallPrompt } from "../pwa/installPrompt.js";
+import { createOutboxSync } from "../pwa/outboxSync.js";
 import NotFoundView from "../views/NotFoundView.js";
 
 function readStorage(browserWindow, name) {
@@ -47,8 +49,10 @@ export default function startApp({
     cookieDocument: browserDocument,
     onError: (mechanism) => showPersistenceWarning(warning, mechanism),
   });
+  // La cola de sugerencias arranca con la app para que el plan B reintente al abrirla.
+  const outboxSync = createOutboxSync({ browserWindow, database }).init();
   const router = new Router(
-    createRoutes(persistence, database, diagnostics),
+    createRoutes(persistence, database, diagnostics, outboxSync),
     browserDocument.querySelector("#app"),
     NotFoundView,
   );
@@ -75,6 +79,10 @@ export default function startApp({
     document: browserDocument,
     database,
   }).init();
+  new SuggestionsController({
+    document: browserDocument,
+    outboxSync,
+  }).init();
   new ServiceWorkerController({
     document: browserDocument,
     diagnostics,
@@ -82,5 +90,5 @@ export default function startApp({
   }).init();
   router.init();
 
-  return { installPrompt, persistence, router, themeController };
+  return { installPrompt, outboxSync, persistence, router, themeController };
 }

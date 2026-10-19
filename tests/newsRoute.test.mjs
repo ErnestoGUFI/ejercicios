@@ -82,3 +82,13 @@ test("the Service Worker diagnostic is available through the existing router", a
   const html = await match.route.view(match.params);
   assert.match(html, /Diagnóstico de Service Worker/);
 });
+
+test("the suggestions route renders the outbox that starts with the app", async () => {
+  const outboxSync = { mode: "plan-b", getPending: async () => [] };
+  const match = resolveRoute(createRoutes(undefined, undefined, undefined, outboxSync), "/sugerencias");
+
+  assert.ok(match);
+  const html = await match.route.view(match.params);
+  assert.match(html, /Sugerir un tema/);
+  assert.match(html, /Modo: reintento manual/);
+});

@@ -4,6 +4,7 @@
 .about-view h1,
 .persistence-view h1,
 .saved-resources-view h1,
+.suggestions-view h1,
 .service-worker-view h1,
 .not-found-view h1,
 .error-view h1 {
@@ -107,6 +108,7 @@
 
 .form-field input,
 .form-field select,
+.form-field textarea,
 .filter-field select {
   width: 100%;
   min-width: 0;
@@ -132,6 +134,7 @@
 
 .form-field input:focus-visible,
 .form-field select:focus-visible,
+.form-field textarea:focus-visible,
 .filter-field select:focus-visible,
 .save-resource-button:focus-visible,
 .saved-resource-item a:focus-visible,
@@ -147,6 +150,60 @@
 
 .saved-resource-feedback[data-feedback-state="error"] {
   color: var(--color-danger);
+}
+
+.form-field textarea {
+  min-height: 6rem;
+  padding-block: var(--space-2);
+  border-radius: 0.375rem;
+  font: inherit;
+  resize: vertical;
+}
+
+.outbox-header {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  margin-bottom: var(--space-4);
+}
+
+.outbox-header h2 {
+  margin: 0;
+  font-size: 1.375rem;
+}
+
+.outbox-mode {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.outbox-mode strong {
+  color: var(--color-ink);
+}
+
+.outbox-item {
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.outbox-item h3 {
+  margin: 0 0 var(--space-1);
+  font-size: 1.125rem;
+  line-height: 1.35;
+}
+
+.outbox-item p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.outbox-item-status[data-outbox-state="error"] {
+  color: var(--color-danger);
+}
+
+.outbox-confirmation {
+  margin: var(--space-4) 0 0;
+  font-weight: 600;
 }
 
 .saved-resources-section {
@@ -584,6 +641,14 @@
 
   .saved-resource-feedback {
     grid-column: 1 / -1;
+  }
+
+  .suggestion-comment-field {
+    grid-column: 1 / -1;
+  }
+
+  .suggestion-form .save-resource-button {
+    grid-column: 1;
   }
 
   .save-resource-button {

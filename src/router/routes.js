@@ -5,6 +5,7 @@ import ItemDetailView from "../views/ItemDetailView.js";
 import PersistenceView from "../views/PersistenceView.js";
 import SavedResourcesView from "../views/SavedResourcesView.js";
 import ServiceWorkerView from "../views/ServiceWorkerView.js";
+import SuggestionsView from "../views/SuggestionsView.js";
 import PersistenceService from "../services/PersistenceService.js";
 import dbService from "../services/dbService.js";
 import serviceWorkerDiagnostics from "../pwa/diagnostics.js";
@@ -13,6 +14,7 @@ export function createRoutes(
   persistence = new PersistenceService(),
   database = dbService,
   diagnostics = serviceWorkerDiagnostics,
+  outboxSync = undefined,
 ) {
   return [
     { path: "/", view: HomeView },
@@ -27,6 +29,10 @@ export function createRoutes(
     {
       path: "/guardados",
       view: (params) => SavedResourcesView(params, database),
+    },
+    {
+      path: "/sugerencias",
+      view: (params) => SuggestionsView(params, outboxSync),
     },
     {
       path: "/service-worker",
