@@ -1,3 +1,4 @@
+import { parseLocationAttachment } from "../pwa/geolocation.js";
 import { renderOutboxItems } from "../views/SuggestionsView.js";
 
 export default class SuggestionsController {
@@ -69,13 +70,24 @@ export default class SuggestionsController {
     submitButton.disabled = true;
 
     try {
+      // La ubicación se lee antes de form.reset(), que dispara la limpieza del campo oculto.
+      const location = parseLocationAttachment(
+        form.elements["suggestion-location"]?.value,
+        form.elements["suggestion-place"]?.value,
+      );
       await this.outboxSync.enqueue({
         topic: form.elements["suggestion-topic"].value.trim(),
         area: form.elements["suggestion-area"].value,
         comment: form.elements["suggestion-comment"].value.trim(),
+        location,
       });
       form.reset();
-      this.setFeedback("success", "La sugerencia quedó guardada en la cola de envío.");
+      this.setFeedback(
+        "success",
+        location?.source === "device"
+          ? "La sugerencia quedó guardada en la cola de envío con tu ubicación aproximada."
+          : "La sugerencia quedó guardada en la cola de envío.",
+      );
     } catch {
       this.setFeedback("error", "No se pudo guardar la sugerencia. Revisa el almacenamiento del navegador.");
     } finally {

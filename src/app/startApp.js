@@ -1,6 +1,8 @@
 import showPersistenceWarning from "../components/PersistenceNotice.js";
+import LocationController from "../controllers/LocationController.js";
 import PersistenceController from "../controllers/PersistenceController.js";
 import SavedResourcesController from "../controllers/SavedResourcesController.js";
+import ShareController from "../controllers/ShareController.js";
 import SuggestionsController from "../controllers/SuggestionsController.js";
 import ServiceWorkerController from "../controllers/ServiceWorkerController.js";
 import ThemeController from "../controllers/ThemeController.js";
@@ -11,8 +13,10 @@ import { createRoutes } from "../router/routes.js";
 import PersistenceService from "../services/PersistenceService.js";
 import dbService from "../services/dbService.js";
 import serviceWorkerDiagnostics from "../pwa/diagnostics.js";
+import { createLocationService } from "../pwa/geolocation.js";
 import { createInstallPrompt } from "../pwa/installPrompt.js";
 import { createOutboxSync } from "../pwa/outboxSync.js";
+import { createShareService } from "../pwa/share.js";
 import NotFoundView from "../views/NotFoundView.js";
 
 function readStorage(browserWindow, name) {
@@ -51,8 +55,16 @@ export default function startApp({
   });
   // La cola de sugerencias arranca con la app para que el plan B reintente al abrirla.
   const outboxSync = createOutboxSync({ browserWindow, database }).init();
+  // Las banderas de prueba (?timeout-ubicacion, ?sin-share, ?sin-portapapeles) se leen una vez al arrancar.
+  const search = browserWindow.location?.search ?? "";
+  const locationService = createLocationService({
+    navigatorObject: browserWindow.navigator,
+    browserWindow,
+    search,
+  });
+  const shareService = createShareService({ navigatorObject: browserWindow.navigator, search });
   const router = new Router(
-    createRoutes(persistence, database, diagnostics, outboxSync),
+    createRoutes(persistence, database, diagnostics, outboxSync, locationService, shareService),
     browserDocument.querySelector("#app"),
     NotFoundView,
   );
@@ -83,6 +95,14 @@ export default function startApp({
     document: browserDocument,
     outboxSync,
   }).init();
+  new LocationController({
+    document: browserDocument,
+    locationService,
+  }).init();
+  new ShareController({
+    document: browserDocument,
+    shareService,
+  }).init();
   new ServiceWorkerController({
     document: browserDocument,
     diagnostics,
@@ -90,5 +110,13 @@ export default function startApp({
   }).init();
   router.init();
 
-  return { installPrompt, outboxSync, persistence, router, themeController };
+  return {
+    installPrompt,
+    locationService,
+    outboxSync,
+    persistence,
+    router,
+    shareService,
+    themeController,
+  };
 }

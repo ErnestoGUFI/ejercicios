@@ -1,4 +1,4 @@
-const CACHE_VERSION = "tech-catalogo-shell-v9";
+const CACHE_VERSION = "tech-catalogo-shell-v10";
 const CACHE_PREFIX = "tech-catalogo-shell-v";
 const HACKER_NEWS_ORIGIN = "https://hacker-news.firebaseio.com";
 const NETWORK_FIRST_URL = new URL("./cache-demo.json", self.registration.scope).href;
@@ -30,11 +30,15 @@ const APP_SHELL = [
   "./src/app/startApp.js",
   "./src/components/InstallControl.js",
   "./src/components/ItemCard.js",
+  "./src/components/LocationField.js",
   "./src/components/NewsItem.js",
   "./src/components/NetworkStatusNotice.js",
   "./src/components/PersistenceNotice.js",
+  "./src/components/ShareControl.js",
+  "./src/controllers/LocationController.js",
   "./src/controllers/PersistenceController.js",
   "./src/controllers/SavedResourcesController.js",
+  "./src/controllers/ShareController.js",
   "./src/controllers/SuggestionsController.js",
   "./src/controllers/ServiceWorkerController.js",
   "./src/controllers/ThemeController.js",
@@ -42,10 +46,12 @@ const APP_SHELL = [
   "./src/data/resourceAreas.js",
   "./src/pwa/config.js",
   "./src/pwa/diagnostics.js",
+  "./src/pwa/geolocation.js",
   "./src/pwa/installPrompt.js",
   "./src/pwa/outboxSync.js",
   "./src/pwa/registerSW.js",
   "./src/pwa/scopeDemo.js",
+  "./src/pwa/share.js",
   "./src/router/router.js",
   "./src/router/routes.js",
   "./src/services/CacheDebugService.js",
@@ -155,6 +161,8 @@ async function sendOutbox(trigger) {
           area: item.area,
           clientId: item.id,
           createdAt: item.createdAt,
+          // Los elementos guardados antes de la v10 no tienen ubicación.
+          location: item.location ?? null,
         }),
       });
     } catch (error) {

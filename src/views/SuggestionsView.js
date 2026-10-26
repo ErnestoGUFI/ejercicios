@@ -1,3 +1,4 @@
+import LocationField, { describeLocation } from "../components/LocationField.js";
 import { RESOURCE_AREAS, getResourceAreaLabel } from "../data/resourceAreas.js";
 import escapeHtml from "../utils/escapeHtml.js";
 
@@ -28,11 +29,14 @@ export function renderOutboxItems(items) {
       const status = item.lastError
         ? `Último intento: ${escapeHtml(item.lastError)}. Se volverá a intentar.`
         : "Pendiente de envío.";
+      // describeLocation ya devuelve el lugar escapado.
+      const place = describeLocation(item.location);
+      const origin = place ? ` · ${place}` : "";
 
       return `
         <li class="outbox-item" data-outbox-item="${escapeHtml(item.id)}">
           <h3>${escapeHtml(item.topic)}</h3>
-          <p>${escapeHtml(getResourceAreaLabel(item.area))} · guardada ${escapeHtml(formatDate(item.createdAt))}</p>
+          <p>${escapeHtml(getResourceAreaLabel(item.area))}${origin} · guardada ${escapeHtml(formatDate(item.createdAt))}</p>
           <p class="outbox-item-status" ${item.lastError ? 'data-outbox-state="error"' : ""}>${status}</p>
         </li>
       `;
@@ -40,7 +44,16 @@ export function renderOutboxItems(items) {
     .join("");
 }
 
-export default async function SuggestionsView(_params = {}, outboxSync) {
+async function readPermissionState(locationService) {
+  // La consulta del permiso no abre ningún aviso; la posición solo se lee al pulsar el botón.
+  try {
+    return locationService?.isSupported() ? await locationService.getPermissionState() : "unsupported";
+  } catch {
+    return "unknown";
+  }
+}
+
+export default async function SuggestionsView(_params = {}, outboxSync, locationService) {
   let items = [];
   let feedback = "";
 
@@ -49,6 +62,8 @@ export default async function SuggestionsView(_params = {}, outboxSync) {
   } catch {
     feedback = "No se pudo leer la cola de envíos. Recarga la página e inténtalo de nuevo.";
   }
+
+  const permissionState = await readPermissionState(locationService);
 
   const mode = outboxSync?.mode ?? "plan-b";
   const modeText = MODE_TEXT[mode];
@@ -73,6 +88,7 @@ export default async function SuggestionsView(_params = {}, outboxSync) {
           <label for="suggestion-comment">¿Por qué agregarlo?</label>
           <textarea id="suggestion-comment" name="suggestion-comment" rows="3" maxlength="280" required></textarea>
         </div>
+        ${LocationField({ permissionState })}
         <button class="save-resource-button" type="submit">Enviar sugerencia</button>
         <p class="saved-resource-feedback" data-suggestion-feedback aria-live="polite" ${feedback ? 'data-feedback-state="error"' : "hidden"}>${feedback}</p>
       </form>

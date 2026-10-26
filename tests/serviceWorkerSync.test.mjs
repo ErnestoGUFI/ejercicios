@@ -166,3 +166,23 @@ test("plan B messages flush the same queue without rejecting the message event",
   assert.equal(worker.indexedDB.outbox.size, 0);
   assert.ok(worker.logs.some((line) => line.includes("conexión recuperada")));
 });
+
+test("the POST carries the attached location and sends null for older items without one", async () => {
+  const location = { source: "device", latitude: 37.77, longitude: -122.42, radiusKm: 1, place: null };
+  const worker = loadServiceWorker({
+    outboxItems: [
+      { ...items[1], location },
+      items[0],
+      { id: "c", topic: "Go", area: "backend", comment: "Servicios", createdAt: "2026-10-19T10:10:00.000Z", attempts: 0, lastError: null, location: { source: "manual", place: "La Paz, B.C.S." } },
+    ],
+    respond: (count) => created(100 + count),
+  });
+
+  await dispatchSync(worker.listeners, SUGGESTION_SYNC_TAG);
+
+  assert.deepEqual(worker.requests.map(({ body }) => [body.title, body.location]), [
+    ["Docker", location],
+    ["Rust", null],
+    ["Go", { source: "manual", place: "La Paz, B.C.S." }],
+  ]);
+});

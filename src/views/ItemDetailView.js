@@ -1,4 +1,7 @@
-export default async function ItemDetailView({ id }) {
+import ShareControl from "../components/ShareControl.js";
+import { buildTopicShareData } from "../pwa/share.js";
+
+export default async function ItemDetailView({ id }, { shareMode = "native" } = {}) {
   const { default: ItemsService } = await import("../services/itemsService.js");
   const item = await new ItemsService().getById(id);
 
@@ -20,6 +23,7 @@ export default async function ItemDetailView({ id }) {
           <p class="category">${item.category}</p>
           <h1 id="topic-title">${item.name}</h1>
           <p class="detail-description">${item.description}</p>
+          ${ShareControl({ topicId: item.id, url: buildTopicShareData(item).url, mode: shareMode })}
         </header>
         <section class="example-panel" aria-labelledby="example-title">
           <h2 id="example-title">Ejemplo</h2>

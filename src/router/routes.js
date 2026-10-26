@@ -15,6 +15,8 @@ export function createRoutes(
   database = dbService,
   diagnostics = serviceWorkerDiagnostics,
   outboxSync = undefined,
+  locationService = undefined,
+  shareService = undefined,
 ) {
   return [
     { path: "/", view: HomeView },
@@ -32,14 +34,18 @@ export function createRoutes(
     },
     {
       path: "/sugerencias",
-      view: (params) => SuggestionsView(params, outboxSync),
+      view: (params) => SuggestionsView(params, outboxSync, locationService),
     },
     {
       path: "/service-worker",
       view: (params) => ServiceWorkerView(params, diagnostics),
     },
     { path: "/acerca", view: AboutView },
-    { path: "/item/:id", view: ItemDetailView },
+    {
+      path: "/item/:id",
+      // El router solo pasa params: el modo de compartir se decide aquí, en cada render.
+      view: (params) => ItemDetailView(params, { shareMode: shareService?.getMode() ?? "native" }),
+    },
   ];
 }
 

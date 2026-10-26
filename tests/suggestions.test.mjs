@@ -94,6 +94,65 @@ test("pending items show their state and escape what the user typed", () => {
   assert.match(html, /data-outbox-state="error">Último intento: HTTP 500\. Se volverá a intentar\./);
 });
 
+test("pending items say where they were suggested from, escaping the typed place", () => {
+  const html = renderOutboxItems([
+    { id: "s-1", topic: "Go", area: "backend", createdAt: "2026-10-19T10:00:00.000Z", location: { source: "manual", place: "La Paz, B.C.S." } },
+    { id: "s-2", topic: "Rust", area: "backend", createdAt: "2026-10-19T10:05:00.000Z", location: { source: "device", latitude: 37.77, longitude: -122.42, radiusKm: 1, place: null } },
+    { id: "s-3", topic: "Deno", area: "backend", createdAt: "2026-10-19T10:10:00.000Z", location: { source: "manual", place: "<b>Centro</b>" } },
+    { id: "s-4", topic: "Bun", area: "backend", createdAt: "2026-10-19T10:15:00.000Z", location: null },
+  ]);
+
+  assert.match(html, /Backend · desde La Paz, B\.C\.S\. · guardada/);
+  assert.match(html, /Backend · zona aprox\. 37\.77, -122\.42 · guardada/);
+  assert.match(html, /Backend · desde &lt;b&gt;Centro&lt;\/b&gt; · guardada/);
+  assert.doesNotMatch(html, /<b>Centro/);
+  assert.equal((html.match(/Backend · guardada/g) ?? []).length, 1);
+});
+
+function createLocationService({ supported = true, state = "prompt", fail = false } = {}) {
+  return {
+    reads: 0,
+    isSupported: () => supported,
+    async getPermissionState() {
+      if (fail) throw new Error("query falló");
+      return state;
+    },
+    async getApproximatePosition() {
+      this.reads += 1;
+      return { latitude: 37.77, longitude: -122.42, radiusKm: 1 };
+    },
+  };
+}
+
+test("the location field sits between the comment and the submit button without reading the position", async () => {
+  const locationService = createLocationService({ state: "granted" });
+  const html = await SuggestionsView({}, createOutbox(), locationService);
+
+  const comment = html.indexOf("suggestion-comment-field");
+  const field = html.indexOf('class="location-field"');
+  const submit = html.indexOf("Enviar sugerencia");
+  assert.ok(comment < field && field < submit);
+  assert.match(html, /data-location-permission data-state="granted"/);
+  assert.match(html, /data-location-request/);
+  assert.match(html, /name="suggestion-location"/);
+  assert.equal(locationService.reads, 0);
+});
+
+test("the permission line falls back to unknown or unsupported without breaking the form", async () => {
+  const failing = await SuggestionsView({}, createOutbox(), createLocationService({ fail: true }));
+  assert.match(failing, /data-location-permission data-state="unknown"/);
+  assert.match(failing, /data-location-request/);
+
+  const unsupported = await SuggestionsView({}, createOutbox(), createLocationService({ supported: false }));
+  assert.match(unsupported, /data-location-permission data-state="unsupported"/);
+  assert.doesNotMatch(unsupported, /data-location-request/);
+  assert.match(unsupported, /id="suggestion-place"/);
+
+  const withoutService = await SuggestionsView({}, createOutbox());
+  assert.match(withoutService, /data-location-permission data-state="unsupported"/);
+  assert.match(withoutService, /data-suggestion-form/);
+});
+
 test("submitting the form queues the suggestion and reports that it was saved", async () => {
   const document = createDocument();
   const outboxSync = createOutbox();
@@ -106,9 +165,61 @@ test("submitting the form queues the suggestion and reports that it was saved", 
 
   await document.listeners.submit({ target: form, preventDefault() {} });
 
-  assert.deepEqual(outboxSync.queued, [{ topic: "Docker", area: "backend", comment: "Contenedores para desplegar" }]);
+  assert.deepEqual(outboxSync.queued, [{ topic: "Docker", area: "backend", comment: "Contenedores para desplegar", location: null }]);
   assert.equal(form.resetCalls, 1);
   assert.equal(form.button.disabled, false);
+  assert.equal(document.elements["[data-suggestion-feedback]"].textContent, "La sugerencia quedó guardada en la cola de envío.");
+});
+
+test("an attached device location is read before the reset and queued with the suggestion", async () => {
+  const document = createDocument();
+  const outboxSync = createOutbox();
+  new SuggestionsController({ document, outboxSync }).init();
+  const form = createForm({
+    "suggestion-topic": "Docker",
+    "suggestion-area": "backend",
+    "suggestion-comment": "Contenedores",
+    "suggestion-location": '{"latitude":37.774929,"longitude":-122.419416,"radiusKm":1}',
+    "suggestion-place": "  ",
+  });
+  // Igual que en el navegador: el evento reset vacía el campo oculto.
+  form.reset = function reset() {
+    this.resetCalls += 1;
+    this.elements["suggestion-location"].value = "";
+  };
+
+  await document.listeners.submit({ target: form, preventDefault() {} });
+
+  assert.deepEqual(outboxSync.queued[0].location, {
+    source: "device",
+    latitude: 37.77,
+    longitude: -122.42,
+    radiusKm: 1,
+    place: null,
+  });
+  assert.equal(form.resetCalls, 1);
+  assert.equal(form.elements["suggestion-location"].value, "");
+  assert.equal(
+    document.elements["[data-suggestion-feedback]"].textContent,
+    "La sugerencia quedó guardada en la cola de envío con tu ubicación aproximada.",
+  );
+});
+
+test("a typed city is queued as a manual location and keeps the usual message", async () => {
+  const document = createDocument();
+  const outboxSync = createOutbox();
+  new SuggestionsController({ document, outboxSync }).init();
+  const form = createForm({
+    "suggestion-topic": "Rust",
+    "suggestion-area": "backend",
+    "suggestion-comment": "Sistemas",
+    "suggestion-location": "",
+    "suggestion-place": " La Paz, B.C.S. ",
+  });
+
+  await document.listeners.submit({ target: form, preventDefault() {} });
+
+  assert.deepEqual(outboxSync.queued[0].location, { source: "manual", place: "La Paz, B.C.S." });
   assert.equal(document.elements["[data-suggestion-feedback]"].textContent, "La sugerencia quedó guardada en la cola de envío.");
 });
 

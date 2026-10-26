@@ -30,7 +30,7 @@
 
 .detail-layout {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-7);
   padding-top: var(--space-5);
   border-top: 1px solid var(--color-line);
@@ -42,6 +42,22 @@
 
 .detail-description {
   font-size: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+}
+
+.share-control {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  margin-top: var(--space-5);
+}
+
+.share-fallback {
+  justify-self: stretch;
+  max-width: var(--text-width);
+}
+
+.share-fallback[hidden] {
+  display: none;
 }
 
 .about-view,
@@ -152,12 +168,66 @@
   color: var(--color-danger);
 }
 
+.saved-resource-feedback[data-feedback-state="info"] {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
 .form-field textarea {
   min-height: 6rem;
   padding-block: var(--space-2);
   border-radius: 0.375rem;
   font: inherit;
   resize: vertical;
+}
+
+.location-field {
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-4) 0 0;
+  border: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.location-field legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  margin-bottom: var(--space-3);
+  font-weight: 600;
+}
+
+.location-field-body {
+  clear: both;
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.location-field-body > .form-field {
+  justify-self: stretch;
+}
+
+.location-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.location-actions [hidden] {
+  display: none;
+}
+
+.location-purpose,
+.location-permission,
+.location-hint {
+  margin: 0;
+  max-width: var(--text-width);
+  color: var(--color-muted);
+}
+
+.location-permission[data-state$="denied"] {
+  color: var(--color-ink);
 }
 
 .outbox-header {
@@ -190,11 +260,13 @@
   margin: 0 0 var(--space-1);
   font-size: 1.125rem;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .outbox-item p {
   margin: 0;
   color: var(--color-muted);
+  overflow-wrap: anywhere;
 }
 
 .outbox-item-status[data-outbox-state="error"] {
@@ -643,7 +715,8 @@
     grid-column: 1 / -1;
   }
 
-  .suggestion-comment-field {
+  .suggestion-comment-field,
+  .location-field {
     grid-column: 1 / -1;
   }
 

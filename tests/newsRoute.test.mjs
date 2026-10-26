@@ -92,3 +92,25 @@ test("the suggestions route renders the outbox that starts with the app", async 
   assert.match(html, /Sugerir un tema/);
   assert.match(html, /Modo: reintento manual/);
 });
+
+test("the suggestions route passes the location service to the view", async () => {
+  const outboxSync = { mode: "plan-b", getPending: async () => [] };
+  const locationService = { isSupported: () => true, getPermissionState: async () => "denied" };
+  const match = resolveRoute(createRoutes(undefined, undefined, undefined, outboxSync, locationService), "/sugerencias");
+
+  const html = await match.route.view(match.params);
+  assert.match(html, /data-location-permission data-state="denied"/);
+  assert.match(html, /data-location-help open/);
+});
+
+test("the topic route asks the share service for its mode on every render", async () => {
+  let mode = "native";
+  const shareService = { getMode: () => mode };
+  const match = resolveRoute(createRoutes(undefined, undefined, undefined, undefined, undefined, shareService), "/item/javascript");
+
+  assert.ok(match);
+  assert.match(await match.route.view(match.params), /data-share-topic="javascript">Compartir tema</);
+  mode = "copy";
+  assert.match(await match.route.view(match.params), /data-share-topic="javascript">Copiar enlace del tema</);
+  assert.match(await resolveRoute(routes, "/item/javascript").route.view({ id: "javascript" }), /Compartir tema/);
+});
