@@ -1,4 +1,4 @@
-const CACHE_VERSION = "tech-catalogo-shell-v11";
+const CACHE_VERSION = "tech-catalogo-shell-v12";
 const CACHE_PREFIX = "tech-catalogo-shell-v";
 const HACKER_NEWS_ORIGIN = "https://hacker-news.firebaseio.com";
 const NETWORK_FIRST_URL = new URL("./cache-demo.json", self.registration.scope).href;
@@ -241,11 +241,11 @@ async function openNotificationTarget(requestedUrl) {
     return self.clients.openWindow(url);
   }
 
-  // Si la app ya está abierta, se enfoca y la SPA cambia de ruta sin recargar.
-  console.info("[SW] notificación: se enfoca la app y se abre", url);
-  const focused = await client.focus();
-  (focused ?? client).postMessage({ type: "notification-open", url });
-  return focused ?? client;
+  // Si la app ya está abierta, la SPA cambia de ruta sin recargar. El cambio de ruta no depende de focus(),
+  // que el navegador puede rechazar si no hay un clic real del usuario.
+  console.info("[SW] notificación: se abre en la app", url);
+  client.postMessage({ type: "notification-open", url });
+  return client.focus().catch(() => client);
 }
 
 async function recordFailure(item, reason) {

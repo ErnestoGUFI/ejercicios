@@ -281,3 +281,17 @@ test("notificationclick opens a new window when the app is closed, and ignores f
     "https://example.com/ejercicios/#/sugerencias",
   ]);
 });
+
+test("the open app still changes route when the browser refuses focus()", async () => {
+  const posted = [];
+  const app = {
+    url: "https://example.com/ejercicios/#/acerca",
+    async focus() { throw new Error("InvalidAccessError"); },
+    postMessage: (message) => posted.push(message.url),
+  };
+  const worker = loadServiceWorker({ respond: () => created(101), windows: [app] });
+
+  await clickNotification(worker.listeners, "https://example.com/ejercicios/#/sugerencias").promise;
+
+  assert.deepEqual(posted, ["https://example.com/ejercicios/#/sugerencias"]);
+});
