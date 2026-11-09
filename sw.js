@@ -1,4 +1,4 @@
-const CACHE_VERSION = "tech-catalogo-shell-v10";
+const CACHE_VERSION = "tech-catalogo-shell-v11";
 const CACHE_PREFIX = "tech-catalogo-shell-v";
 const HACKER_NEWS_ORIGIN = "https://hacker-news.firebaseio.com";
 const NETWORK_FIRST_URL = new URL("./cache-demo.json", self.registration.scope).href;
@@ -9,6 +9,7 @@ const RESOURCE_STORE = "saved-resources";
 const OUTBOX_STORE = "outbox";
 const SUGGESTION_SYNC_TAG = "enviar-sugerencias";
 const SUGGESTIONS_ENDPOINT = "https://jsonplaceholder.typicode.com/posts";
+const SENT_NOTIFICATION_TAG = "sugerencias-enviadas";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -32,6 +33,7 @@ const APP_SHELL = [
   "./src/components/ItemCard.js",
   "./src/components/LocationField.js",
   "./src/components/NewsItem.js",
+  "./src/components/NotificationControl.js",
   "./src/components/NetworkStatusNotice.js",
   "./src/components/PersistenceNotice.js",
   "./src/components/ShareControl.js",
@@ -48,6 +50,7 @@ const APP_SHELL = [
   "./src/pwa/diagnostics.js",
   "./src/pwa/geolocation.js",
   "./src/pwa/installPrompt.js",
+  "./src/pwa/notifications.js",
   "./src/pwa/outboxSync.js",
   "./src/pwa/registerSW.js",
   "./src/pwa/scopeDemo.js",
@@ -148,7 +151,19 @@ function flushOutbox(trigger) {
 async function sendOutbox(trigger) {
   const items = await readOutbox();
   console.info(`[SW] ${items.length} sugerencia(s) en la cola (${trigger})`);
+  const sent = [];
 
+  try {
+    await sendItems(items, sent);
+  } finally {
+    // Avisa de lo que sí llegó, aunque un envío posterior haya fallado.
+    if (sent.length > 0) await showSentNotification(sent);
+  }
+
+  await notifyClients({ type: "outbox-flushed", trigger });
+}
+
+async function sendItems(items, sent) {
   for (const item of items) {
     let response;
     try {
@@ -179,6 +194,7 @@ async function sendOutbox(trigger) {
     const confirmation = await response.json().catch(() => ({}));
     await deleteFromOutbox(item.id);
     console.info("[SW] sugerencia enviada:", item.topic, response.status, "id", confirmation.id ?? "—");
+    sent.push(item.topic);
     await notifyClients({
       type: "outbox-sent",
       id: item.id,
@@ -187,8 +203,49 @@ async function sendOutbox(trigger) {
       serverId: confirmation.id ?? null,
     });
   }
+}
 
-  await notifyClients({ type: "outbox-flushed", trigger });
+async function showSentNotification(topics) {
+  if (self.Notification?.permission !== "granted") return;
+
+  const quoted = topics.map((topic) => `«${topic}»`).join(", ");
+  const title = topics.length === 1 ? "Sugerencia enviada" : `${topics.length} sugerencias enviadas`;
+  const body = `${quoted} ${topics.length === 1 ? "llegó" : "llegaron"} al servidor. Toca para ver tus envíos.`;
+  // Las rutas parten del scope para que funcionen desde cualquier vista de la SPA.
+  await self.registration.showNotification(title, {
+    body,
+    icon: new URL("./icons/icon-192.png", self.registration.scope).href,
+    badge: new URL("./icons/favicon-32.png", self.registration.scope).href,
+    lang: "es",
+    // Con el mismo tag, un aviso nuevo reemplaza al anterior en lugar de apilarse.
+    tag: SENT_NOTIFICATION_TAG,
+    data: { url: new URL("./#/sugerencias", self.registration.scope).href },
+  });
+  console.info("[SW] notificación mostrada:", title);
+}
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(openNotificationTarget(event.notification.data?.url));
+});
+
+async function openNotificationTarget(requestedUrl) {
+  const scope = self.registration.scope;
+  const fallback = new URL("./#/sugerencias", scope).href;
+  const url = requestedUrl && new URL(requestedUrl, scope).href.startsWith(scope) ? new URL(requestedUrl, scope).href : fallback;
+
+  const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  const client = windows.find((candidate) => candidate.url.startsWith(scope));
+  if (!client) {
+    console.info("[SW] notificación: se abre", url);
+    return self.clients.openWindow(url);
+  }
+
+  // Si la app ya está abierta, se enfoca y la SPA cambia de ruta sin recargar.
+  console.info("[SW] notificación: se enfoca la app y se abre", url);
+  const focused = await client.focus();
+  (focused ?? client).postMessage({ type: "notification-open", url });
+  return focused ?? client;
 }
 
 async function recordFailure(item, reason) {

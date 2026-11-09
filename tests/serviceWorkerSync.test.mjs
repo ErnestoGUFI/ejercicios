@@ -56,17 +56,32 @@ function createFakeIndexedDB(outboxItems) {
   };
 }
 
-function loadServiceWorker({ outboxItems = [], respond }) {
+function loadServiceWorker({ outboxItems = [], respond, permission = "default", windows }) {
   const listeners = {};
   const logs = [];
   const messages = [];
   const requests = [];
+  const notifications = [];
+  const opened = [];
   const indexedDB = createFakeIndexedDB(outboxItems);
+  const clientList = windows ?? [{ url: "https://example.com/ejercicios/#/", postMessage: (message) => messages.push(message) }];
   const self = {
     constructor: { name: "ServiceWorkerGlobalScope" },
     location: { origin: "https://example.com", href: "https://example.com/ejercicios/sw.js" },
-    registration: { scope: "https://example.com/ejercicios/" },
-    clients: { matchAll: async () => [{ postMessage: (message) => messages.push(message) }] },
+    Notification: { permission },
+    registration: {
+      scope: "https://example.com/ejercicios/",
+      async showNotification(title, options) {
+        notifications.push({ title, ...options });
+      },
+    },
+    clients: {
+      matchAll: async () => clientList,
+      async openWindow(url) {
+        opened.push(url);
+        return { url };
+      },
+    },
     addEventListener(type, handler) {
       listeners[type] = handler;
     },
@@ -77,7 +92,7 @@ function loadServiceWorker({ outboxItems = [], respond }) {
   };
   const log = (...args) => logs.push(args.join(" "));
   vm.runInNewContext(source, { self, indexedDB, fetch, URL, console: { info: log, warn: log } });
-  return { listeners, logs, messages, requests, indexedDB };
+  return { listeners, logs, messages, requests, indexedDB, notifications, opened };
 }
 
 function dispatchSync(listeners, tag) {
@@ -184,5 +199,85 @@ test("the POST carries the attached location and sends null for older items with
     ["Docker", location],
     ["Rust", null],
     ["Go", { source: "manual", place: "La Paz, B.C.S." }],
+  ]);
+});
+
+test("with permission granted, a finished send shows one local notification with tag, icon and route", async () => {
+  const worker = loadServiceWorker({ outboxItems: items, respond: (count) => created(100 + count), permission: "granted" });
+
+  await dispatchSync(worker.listeners, SUGGESTION_SYNC_TAG);
+
+  assert.equal(worker.notifications.length, 1);
+  const [notification] = worker.notifications;
+  assert.equal(notification.title, "2 sugerencias enviadas");
+  assert.equal(notification.body, "«Docker», «Rust» llegaron al servidor. Toca para ver tus envíos.");
+  assert.equal(notification.tag, "sugerencias-enviadas");
+  assert.equal(notification.icon, "https://example.com/ejercicios/icons/icon-192.png");
+  assert.equal(notification.data.url, "https://example.com/ejercicios/#/sugerencias");
+});
+
+test("no notification without permission, with an empty queue, or when nothing was sent", async () => {
+  const withoutPermission = loadServiceWorker({ outboxItems: items, respond: (count) => created(100 + count) });
+  await dispatchSync(withoutPermission.listeners, SUGGESTION_SYNC_TAG);
+  assert.equal(withoutPermission.notifications.length, 0);
+
+  const empty = loadServiceWorker({ outboxItems: [], respond: () => created(101), permission: "granted" });
+  await dispatchSync(empty.listeners, SUGGESTION_SYNC_TAG);
+  assert.equal(empty.notifications.length, 0);
+
+  const failing = loadServiceWorker({ outboxItems: items, respond: () => ({ ok: false, status: 500, json: async () => ({}) }), permission: "granted" });
+  await assert.rejects(dispatchSync(failing.listeners, SUGGESTION_SYNC_TAG));
+  assert.equal(failing.notifications.length, 0);
+});
+
+test("a partial send still notifies what reached the server", async () => {
+  const worker = loadServiceWorker({
+    outboxItems: items,
+    respond: (count) => (count === 1 ? created(101) : { ok: false, status: 500, json: async () => ({}) }),
+    permission: "granted",
+  });
+
+  await assert.rejects(dispatchSync(worker.listeners, SUGGESTION_SYNC_TAG));
+
+  assert.equal(worker.notifications.length, 1);
+  assert.equal(worker.notifications[0].title, "Sugerencia enviada");
+  assert.match(worker.notifications[0].body, /«Docker» llegó al servidor/);
+});
+
+function clickNotification(listeners, url) {
+  const notification = { data: { url }, closed: 0, close() { this.closed += 1; } };
+  let promise;
+  listeners.notificationclick({ notification, waitUntil: (value) => { promise = value; } });
+  return { notification, promise };
+}
+
+test("notificationclick closes it, focuses the open app and asks it to open the route", async () => {
+  const posted = [];
+  const app = {
+    url: "https://example.com/ejercicios/#/acerca",
+    focusCalls: 0,
+    async focus() { this.focusCalls += 1; return this; },
+    postMessage: (message) => posted.push(message),
+  };
+  const worker = loadServiceWorker({ respond: () => created(101), windows: [{ url: "https://otro.example/", postMessage() {} }, app] });
+
+  const { notification, promise } = clickNotification(worker.listeners, "https://example.com/ejercicios/#/sugerencias");
+  await promise;
+
+  assert.equal(notification.closed, 1);
+  assert.equal(app.focusCalls, 1);
+  assert.deepEqual(posted.map(({ type, url }) => [type, url]), [["notification-open", "https://example.com/ejercicios/#/sugerencias"]]);
+  assert.deepEqual(worker.opened, []);
+});
+
+test("notificationclick opens a new window when the app is closed, and ignores foreign urls", async () => {
+  const worker = loadServiceWorker({ respond: () => created(101), windows: [] });
+
+  await clickNotification(worker.listeners, "https://example.com/ejercicios/#/sugerencias").promise;
+  await clickNotification(worker.listeners, "https://malicioso.example/").promise;
+
+  assert.deepEqual(worker.opened, [
+    "https://example.com/ejercicios/#/sugerencias",
+    "https://example.com/ejercicios/#/sugerencias",
   ]);
 });

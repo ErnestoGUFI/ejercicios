@@ -8,6 +8,7 @@ import ServiceWorkerController from "../controllers/ServiceWorkerController.js";
 import ThemeController from "../controllers/ThemeController.js";
 import initNetworkStatusNotice from "../components/NetworkStatusNotice.js";
 import initInstallControl from "../components/InstallControl.js";
+import initNotificationControl from "../components/NotificationControl.js";
 import Router from "../router/router.js";
 import { createRoutes } from "../router/routes.js";
 import PersistenceService from "../services/PersistenceService.js";
@@ -15,6 +16,7 @@ import dbService from "../services/dbService.js";
 import serviceWorkerDiagnostics from "../pwa/diagnostics.js";
 import { createLocationService } from "../pwa/geolocation.js";
 import { createInstallPrompt } from "../pwa/installPrompt.js";
+import { createNotificationPermission } from "../pwa/notifications.js";
 import { createOutboxSync } from "../pwa/outboxSync.js";
 import { createShareService } from "../pwa/share.js";
 import NotFoundView from "../views/NotFoundView.js";
@@ -46,6 +48,12 @@ export default function startApp({
     hint: browserDocument.querySelector("#install-hint"),
     installPrompt,
     storage: readStorage(browserWindow, "sessionStorage"),
+  });
+  const notificationPermission = createNotificationPermission({ browserWindow }).init();
+  initNotificationControl({
+    button: browserDocument.querySelector("#notification-button"),
+    hint: browserDocument.querySelector("#notification-hint"),
+    notificationPermission,
   });
   const persistence = new PersistenceService({
     localStorage: readStorage(browserWindow, "localStorage"),
@@ -113,6 +121,7 @@ export default function startApp({
   return {
     installPrompt,
     locationService,
+    notificationPermission,
     outboxSync,
     persistence,
     router,
