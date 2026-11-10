@@ -346,3 +346,15 @@ test("without Push API the granted permission turns on the local avisos, as in e
   assert.equal(button.textContent, NOTIFICATION_LABELS.granted);
   assert.equal(button.disabled, true);
 });
+
+test("the VAPID key is fetched once when the app opens, so the tap goes straight to pushManager.subscribe", async () => {
+  const { service, log } = createPushWindow();
+
+  assert.equal(await service.prepare(), true);
+  log.length = 0;
+  await service.subscribe();
+
+  // Lo primero tras el toque es pushManager.subscribe(); la llave ya estaba descargada.
+  assert.deepEqual(log.map(([kind]) => kind), ["subscribe", "backend"]);
+  assert.equal(log.filter(([, , path]) => path === "/push/public-key").length, 0);
+});

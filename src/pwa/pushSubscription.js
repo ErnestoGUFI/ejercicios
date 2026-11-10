@@ -34,14 +34,27 @@ export function createPushSubscription({
     return response.status === 204 ? null : response.json();
   }
 
+  // La llave se pide al abrir la app: Safari solo permite pushManager.subscribe() durante el gesto
+  // del usuario, y esperar una respuesta de red dentro del clic lo agotaría.
+  let publicKeyRequest = null;
+  function loadPublicKey() {
+    publicKeyRequest ??= backend.request("/push/public-key", { auth: false })
+      .then((response) => expect(response, "Llave pública"))
+      .then(({ publicKey }) => base64UrlToBytes(publicKey))
+      .catch((error) => {
+        publicKeyRequest = null;
+        throw error;
+      });
+    return publicKeyRequest;
+  }
+
   async function saveOnBackend(subscription) {
     await expect(await backend.request("/push/subscriptions", { method: "POST", body: subscription.toJSON() }), "Guardar suscripción");
   }
 
   // Requiere el permiso concedido. Si las llaves VAPID cambiaron, la suscripción vieja ya no sirve y se rehace.
   async function subscribe() {
-    const { publicKey } = await expect(await backend.request("/push/public-key", { auth: false }), "Llave pública");
-    const applicationServerKey = base64UrlToBytes(publicKey);
+    const applicationServerKey = await loadPublicKey();
     const registration = await getRegistration();
     let subscription = await registration.pushManager.getSubscription();
 
@@ -99,6 +112,7 @@ export function createPushSubscription({
 
   return {
     supported,
+    prepare: () => (supported ? loadPublicKey().then(() => true, () => false) : Promise.resolve(false)),
     subscribe,
     unsubscribe,
     resync,
