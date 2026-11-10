@@ -1,12 +1,16 @@
 import { openDB } from "../vendor/idb.js";
 
 export const DATABASE_NAME = "tech-catalog-db";
-export const DATABASE_VERSION = 2;
+export const DATABASE_VERSION = 3;
 export const RESOURCE_STORE = "saved-resources";
 export const AREA_INDEX = "by-area";
 export const OUTBOX_STORE = "outbox";
+// Ajustes que comparten la página y el Service Worker: la sesión del backend y si el usuario apagó los avisos.
+export const SETTINGS_STORE = "settings";
+export const SESSION_KEY = "session";
+export const NOTIFICATIONS_KEY = "notifications";
 
-// Cada versión solo agrega lo que falta: subir de la 1 a la 2 conserva los recursos guardados.
+// Cada versión solo agrega lo que falta: subir de versión conserva los recursos y la cola.
 export function upgradeDatabase(database) {
   if (!database.objectStoreNames.contains(RESOURCE_STORE)) {
     const store = database.createObjectStore(RESOURCE_STORE, { keyPath: "id" });
@@ -15,6 +19,11 @@ export function upgradeDatabase(database) {
 
   if (!database.objectStoreNames.contains(OUTBOX_STORE)) {
     database.createObjectStore(OUTBOX_STORE, { keyPath: "id" });
+  }
+
+  // v3: ajustes compartidos con el Service Worker que envía las sugerencias.
+  if (!database.objectStoreNames.contains(SETTINGS_STORE)) {
+    database.createObjectStore(SETTINGS_STORE, { keyPath: "id" });
   }
 }
 
@@ -67,6 +76,22 @@ export function createDbService(loadDatabase = getDatabase) {
       const database = await loadDatabase();
       const items = await database.getAll(OUTBOX_STORE);
       return items.sort((first, second) => first.createdAt.localeCompare(second.createdAt));
+    },
+
+    async getSession() {
+      const database = await loadDatabase();
+      return (await database.get(SETTINGS_STORE, SESSION_KEY)) ?? null;
+    },
+
+    async setSession(session) {
+      const database = await loadDatabase();
+      return database.put(SETTINGS_STORE, { ...session, id: SESSION_KEY });
+    },
+
+    // Al desactivar los avisos desde la app, el Service Worker tampoco muestra los avisos locales.
+    async setNotificationsEnabled(enabled) {
+      const database = await loadDatabase();
+      return database.put(SETTINGS_STORE, { id: NOTIFICATIONS_KEY, enabled });
     },
   };
 }

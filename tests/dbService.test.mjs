@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   AREA_INDEX,
   OUTBOX_STORE,
+  SETTINGS_STORE,
   RESOURCE_STORE,
   createDatabase,
   createDatabaseLoader,
@@ -28,7 +29,7 @@ function createUpgradeTarget(existingStores = []) {
   };
 }
 
-test("createDatabase opens version 2 with the resource store, its area index and the outbox", async () => {
+test("createDatabase opens version 3 with the resource store, its area index, the outbox and the session", async () => {
   const created = {};
   const target = createUpgradeTarget();
   const openDb = (name, version, options) => {
@@ -41,9 +42,20 @@ test("createDatabase opens version 2 with the resource store, its area index and
   await createDatabase(openDb);
 
   assert.equal(created.name, "tech-catalog-db");
-  assert.equal(created.version, 2);
+  assert.equal(created.version, 3);
   assert.deepEqual(target.stores.get(RESOURCE_STORE), { options: { keyPath: "id" }, indexes: [["by-area", "area"]] });
   assert.deepEqual(target.stores.get(OUTBOX_STORE), { options: { keyPath: "id" }, indexes: [] });
+  assert.deepEqual(target.stores.get(SETTINGS_STORE), { options: { keyPath: "id" }, indexes: [] });
+});
+
+test("upgrading from version 2 only adds the session store and keeps the resources and the outbox", () => {
+  const target = createUpgradeTarget([RESOURCE_STORE, OUTBOX_STORE]);
+
+  upgradeDatabase(target);
+
+  assert.equal(target.stores.get(RESOURCE_STORE).options, "existing");
+  assert.equal(target.stores.get(OUTBOX_STORE).options, "existing");
+  assert.deepEqual(target.stores.get(SETTINGS_STORE), { options: { keyPath: "id" }, indexes: [] });
 });
 
 test("upgrading from version 1 only adds the outbox and keeps the saved resources store", () => {

@@ -1,15 +1,19 @@
-const CACHE_VERSION = "tech-catalogo-shell-v12";
+// Configuración y cliente del backend, compartidos con la página (src/pwa/backend.js).
+importScripts("./src/pwa/backend.js");
+
+const CACHE_VERSION = "tech-catalogo-shell-v13";
 const CACHE_PREFIX = "tech-catalogo-shell-v";
 const HACKER_NEWS_ORIGIN = "https://hacker-news.firebaseio.com";
 const NETWORK_FIRST_URL = new URL("./cache-demo.json", self.registration.scope).href;
 const STALE_WHILE_REVALIDATE_URL = new URL("./cache-swr-demo.json", self.registration.scope).href;
 const DATABASE_NAME = "tech-catalog-db";
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 const RESOURCE_STORE = "saved-resources";
 const OUTBOX_STORE = "outbox";
+const SETTINGS_STORE = "settings";
 const SUGGESTION_SYNC_TAG = "enviar-sugerencias";
-const SUGGESTIONS_ENDPOINT = "https://jsonplaceholder.typicode.com/posts";
 const SENT_NOTIFICATION_TAG = "sugerencias-enviadas";
+const PUSH_FALLBACK_TAG = "aviso-del-servidor";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -49,9 +53,11 @@ const APP_SHELL = [
   "./src/pwa/config.js",
   "./src/pwa/diagnostics.js",
   "./src/pwa/geolocation.js",
+  "./src/pwa/backend.js",
   "./src/pwa/installPrompt.js",
   "./src/pwa/notifications.js",
   "./src/pwa/outboxSync.js",
+  "./src/pwa/pushSubscription.js",
   "./src/pwa/registerSW.js",
   "./src/pwa/scopeDemo.js",
   "./src/pwa/share.js",
@@ -152,6 +158,7 @@ async function sendOutbox(trigger) {
   const items = await readOutbox();
   console.info(`[SW] ${items.length} sugerencia(s) en la cola (${trigger})`);
   const sent = [];
+  if (items.length > 0) await refreshPushSubscription();
 
   try {
     await sendItems(items, sent);
@@ -167,10 +174,10 @@ async function sendItems(items, sent) {
   for (const item of items) {
     let response;
     try {
-      response = await fetch(SUGGESTIONS_ENDPOINT, {
+      // El backend guarda la sugerencia con el usuario de la sesión y desde ahí manda el push.
+      response = await backend.request("/suggestions", {
         method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify({
+        body: {
           title: item.topic,
           body: item.comment,
           area: item.area,
@@ -178,7 +185,7 @@ async function sendItems(items, sent) {
           createdAt: item.createdAt,
           // Los elementos guardados antes de la v10 no tienen ubicación.
           location: item.location ?? null,
-        }),
+        },
       });
     } catch (error) {
       await recordFailure(item, "sin conexión");
@@ -205,8 +212,26 @@ async function sendItems(items, sent) {
   }
 }
 
+// Antes de enviar, la suscripción se vuelve a guardar con la sesión actual: si la sesión cambió de usuario,
+// el push del backend sigue llegando a este dispositivo.
+async function refreshPushSubscription() {
+  try {
+    const subscription = await self.registration.pushManager?.getSubscription();
+    if (!subscription) return;
+    const response = await backend.request("/push/subscriptions", { method: "POST", body: subscription.toJSON() });
+    if (!response.ok) console.warn("[SW] el backend no guardó la suscripción:", response.status);
+  } catch (error) {
+    // Sin conexión o sin backend: el envío de la cola decide si se reintenta.
+    console.warn("[SW] no se pudo actualizar la suscripción:", error.message);
+  }
+}
+
 async function showSentNotification(topics) {
   if (self.Notification?.permission !== "granted") return;
+  // Solo si el usuario activó los avisos desde la app (y no los apagó después).
+  if ((await readSetting("notifications"))?.enabled !== true) return;
+  // Con una suscripción push, el aviso llega desde el backend; el local saldría repetido.
+  if (await self.registration.pushManager?.getSubscription()) return;
 
   const quoted = topics.map((topic) => `«${topic}»`).join(", ");
   const title = topics.length === 1 ? "Sugerencia enviada" : `${topics.length} sugerencias enviadas`;
@@ -219,9 +244,52 @@ async function showSentNotification(topics) {
     lang: "es",
     // Con el mismo tag, un aviso nuevo reemplaza al anterior en lugar de apilarse.
     tag: SENT_NOTIFICATION_TAG,
-    data: { url: new URL("./#/sugerencias", self.registration.scope).href },
+    data: { url: appUrl("#/sugerencias") },
   });
   console.info("[SW] notificación mostrada:", title);
+}
+
+// Push del backend: se espera JSON {title, body, url, tag}; si llega texto plano, se usa como cuerpo.
+self.addEventListener("push", (event) => {
+  event.waitUntil(showPushNotification(readPushMessage(event.data)));
+});
+
+function readPushMessage(data) {
+  if (!data) return {};
+  try {
+    const message = data.json();
+    return message && typeof message === "object" ? message : { body: String(message) };
+  } catch {
+    return { body: data.text() };
+  }
+}
+
+async function showPushNotification(message) {
+  const title = typeof message.title === "string" && message.title ? message.title : "Tech catálogo";
+  await self.registration.showNotification(title, {
+    body: typeof message.body === "string" ? message.body : "",
+    icon: new URL("./icons/icon-192.png", self.registration.scope).href,
+    badge: new URL("./icons/favicon-32.png", self.registration.scope).href,
+    lang: "es",
+    tag: typeof message.tag === "string" && message.tag ? message.tag : PUSH_FALLBACK_TAG,
+    data: { url: appUrl(message.url) },
+  });
+  console.info("[SW] push recibido:", title);
+}
+
+// Las rutas que manda el backend son relativas ("#/sugerencias") y se resuelven contra el scope,
+// así funcionan bajo /ejercicios/ en GitHub Pages. Una URL fuera de la app abre la lista de envíos.
+function appUrl(requestedUrl) {
+  const scope = self.registration.scope;
+  const fallback = new URL("./#/sugerencias", scope).href;
+  if (typeof requestedUrl !== "string" || !requestedUrl) return fallback;
+
+  try {
+    const url = new URL(requestedUrl, scope).href;
+    return url.startsWith(scope) ? url : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 self.addEventListener("notificationclick", (event) => {
@@ -231,8 +299,7 @@ self.addEventListener("notificationclick", (event) => {
 
 async function openNotificationTarget(requestedUrl) {
   const scope = self.registration.scope;
-  const fallback = new URL("./#/sugerencias", scope).href;
-  const url = requestedUrl && new URL(requestedUrl, scope).href.startsWith(scope) ? new URL(requestedUrl, scope).href : fallback;
+  const url = appUrl(requestedUrl);
 
   const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   const client = windows.find((candidate) => candidate.url.startsWith(scope));
@@ -276,18 +343,21 @@ function openDatabase() {
       if (!database.objectStoreNames.contains(OUTBOX_STORE)) {
         database.createObjectStore(OUTBOX_STORE, { keyPath: "id" });
       }
+      if (!database.objectStoreNames.contains(SETTINGS_STORE)) {
+        database.createObjectStore(SETTINGS_STORE, { keyPath: "id" });
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 }
 
-async function withOutbox(mode, operation) {
+async function withStore(storeName, mode, operation) {
   const database = await openDatabase();
   try {
     return await new Promise((resolve, reject) => {
-      const transaction = database.transaction(OUTBOX_STORE, mode);
-      const request = operation(transaction.objectStore(OUTBOX_STORE));
+      const transaction = database.transaction(storeName, mode);
+      const request = operation(transaction.objectStore(storeName));
       transaction.oncomplete = () => resolve(request.result);
       transaction.onerror = () => reject(transaction.error);
       transaction.onabort = () => reject(transaction.error);
@@ -298,17 +368,29 @@ async function withOutbox(mode, operation) {
 }
 
 async function readOutbox() {
-  const items = await withOutbox("readonly", (store) => store.getAll());
+  const items = await withStore(OUTBOX_STORE, "readonly", (store) => store.getAll());
   return items.sort((first, second) => first.createdAt.localeCompare(second.createdAt));
 }
 
 function deleteFromOutbox(id) {
-  return withOutbox("readwrite", (store) => store.delete(id));
+  return withStore(OUTBOX_STORE, "readwrite", (store) => store.delete(id));
 }
 
 function saveOutboxItem(item) {
-  return withOutbox("readwrite", (store) => store.put(item));
+  return withStore(OUTBOX_STORE, "readwrite", (store) => store.put(item));
 }
+
+function readSetting(key) {
+  return withStore(SETTINGS_STORE, "readonly", (store) => store.get(key)).then((value) => value ?? null);
+}
+
+// La misma sesión anónima que usa la página (dbService.js, store "settings").
+const backend = self.TechBackend.createBackendClient({
+  sessionStore: {
+    get: () => readSetting("session"),
+    set: (session) => withStore(SETTINGS_STORE, "readwrite", (store) => store.put({ ...session, id: "session" })),
+  },
+});
 
 function strategyFor(request) {
   if (request.method !== "GET") return null;

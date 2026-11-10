@@ -18,6 +18,7 @@ import { createLocationService } from "../pwa/geolocation.js";
 import { createInstallPrompt } from "../pwa/installPrompt.js";
 import { createNotificationPermission } from "../pwa/notifications.js";
 import { createOutboxSync } from "../pwa/outboxSync.js";
+import { createPushSubscription } from "../pwa/pushSubscription.js";
 import { createShareService } from "../pwa/share.js";
 import NotFoundView from "../views/NotFoundView.js";
 
@@ -50,10 +51,21 @@ export default function startApp({
     storage: readStorage(browserWindow, "sessionStorage"),
   });
   const notificationPermission = createNotificationPermission({ browserWindow }).init();
+  // src/pwa/backend.js (script clásico) deja el cliente en window.TechBackend; sin él solo hay avisos locales.
+  const backend = browserWindow.TechBackend?.createBackendClient({
+    sessionStore: { get: database.getSession, set: database.setSession },
+  });
+  const pushSubscription = createPushSubscription({
+    browserWindow,
+    backend,
+    setNotificationsEnabled: database.setNotificationsEnabled,
+  });
   initNotificationControl({
     button: browserDocument.querySelector("#notification-button"),
     hint: browserDocument.querySelector("#notification-hint"),
     notificationPermission,
+    pushSubscription,
+    setNotificationsEnabled: database.setNotificationsEnabled,
   });
   const persistence = new PersistenceService({
     localStorage: readStorage(browserWindow, "localStorage"),
@@ -123,6 +135,7 @@ export default function startApp({
     locationService,
     notificationPermission,
     outboxSync,
+    pushSubscription,
     persistence,
     router,
     shareService,

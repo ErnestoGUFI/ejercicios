@@ -1,0 +1,12 @@
+# Supabase
+.branches
+.temp
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local
+
+# Secretos locales (llaves VAPID): nunca van al repositorio.
+.env
+functions/.env

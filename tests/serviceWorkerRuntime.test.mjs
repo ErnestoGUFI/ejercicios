@@ -3,6 +3,11 @@ import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import vm from "node:vm";
 
+// sw.js carga src/pwa/backend.js con importScripts; estas pruebas solo cubren la caché.
+function stubBackend(self) {
+  self.TechBackend = { createBackendClient: () => ({}) };
+}
+
 const expectedAppShell = [
   "./",
   "./index.html",
@@ -42,9 +47,11 @@ const expectedAppShell = [
   "./src/pwa/config.js",
   "./src/pwa/diagnostics.js",
   "./src/pwa/geolocation.js",
+  "./src/pwa/backend.js",
   "./src/pwa/installPrompt.js",
   "./src/pwa/notifications.js",
   "./src/pwa/outboxSync.js",
+  "./src/pwa/pushSubscription.js",
   "./src/pwa/registerSW.js",
   "./src/pwa/scopeDemo.js",
   "./src/pwa/share.js",
@@ -88,6 +95,7 @@ test("sw.js logs its worker context and registers install, activate and fetch ha
 
   vm.runInNewContext(source, {
     self,
+    importScripts: () => stubBackend(self),
     console: { info: (...args) => logs.push(args) },
     URL,
   });
@@ -113,12 +121,12 @@ test("sw.js precaches the app shell during install and removes old versions on a
   const serviceWorkerScriptUrl = "https://example.com/ejercicios/sw.js";
   const cache = {
     addAll: async (resources) => {
-      openedCaches.set("tech-catalogo-shell-v12", [...resources]);
+      openedCaches.set("tech-catalogo-shell-v13", [...resources]);
     },
   };
   const cachesObject = {
     open: async (name) => {
-      assert.equal(name, "tech-catalogo-shell-v12");
+      assert.equal(name, "tech-catalogo-shell-v13");
       return cache;
     },
     keys: async () => [
@@ -134,7 +142,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
       "tech-catalogo-shell-v9",
       "tech-catalogo-shell-v10",
       "tech-catalogo-shell-v11",
-      "tech-catalogo-shell-v12",
+      "tech-catalogo-shell-v13",
     ],
     delete: async (name) => {
       deletedCaches.push(name);
@@ -152,6 +160,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
 
   vm.runInNewContext(source, {
     self,
+    importScripts: () => stubBackend(self),
     caches: cachesObject,
     console: { info() {} },
     Request: class TestRequest {
@@ -168,7 +177,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
   listeners.install({ waitUntil(promise) { installWaitUntilCount += 1; installPromise = promise; } });
   await installPromise;
   assert.equal(installWaitUntilCount, 1);
-  const precacheList = openedCaches.get("tech-catalogo-shell-v12");
+  const precacheList = openedCaches.get("tech-catalogo-shell-v13");
   assert.deepEqual(
     precacheList.map((request) => request.url),
     expectedAppShell.map((resource) => new URL(resource, serviceWorkerScriptUrl).href),
@@ -270,6 +279,7 @@ async function createFetchHarness({
   const source = await readFile(new URL("../sw.js", import.meta.url), "utf8");
   vm.runInNewContext(source, {
     self,
+    importScripts: () => stubBackend(self),
     caches: cachesObject,
     fetch,
     console: { info: (...args) => logs.push(args) },
