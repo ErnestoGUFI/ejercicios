@@ -126,6 +126,11 @@ export default function initNotificationControl({
   // Estado inicial de la suscripción y reenvío al backend al abrir la app.
   if (usesPush) {
     pushSubscription.prepare?.();
+    // El estado del navegador se muestra de inmediato; el reenvío al backend tarda lo que tarde la red.
+    pushSubscription.isSubscribed?.().then((current) => {
+      subscribed = current;
+      render();
+    }, () => {});
     pushSubscription.resync().then((current) => {
       subscribed = current;
       render();
