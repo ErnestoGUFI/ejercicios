@@ -269,7 +269,7 @@ test("an already subscribed device opens with Avisos activados; a failed subscri
   }
   assert.deepEqual(failing.calls, ["permission", "subscribe"]);
   assert.equal(failing.button.textContent, NOTIFICATION_LABELS.default);
-  assert.equal(failing.message.textContent, NOTIFICATION_MESSAGES.failed);
+  assert.equal(failing.message.textContent, `${NOTIFICATION_MESSAGES.failed} (Detalle: Error: 503)`);
 });
 
 test("a refresh token rejected by Supabase starts a new anonymous user; a network failure keeps the session", async () => {

@@ -9,7 +9,7 @@ export const NOTIFICATION_MESSAGES = {
   granted: "Avisos activados: te avisaremos cuando tus sugerencias lleguen al servidor, aunque la app esté en segundo plano.",
   subscribed: "Avisos activados: el servidor te avisará cuando reciba tus sugerencias, aunque la pestaña esté cerrada. Para desactivarlos, toca «Avisos activados».",
   unsubscribed: "Avisos desactivados en este dispositivo. Puedes volver a activarlos cuando quieras.",
-  failed: "No pudimos activar los avisos porque el servidor no respondió. Revisa tu conexión e inténtalo de nuevo.",
+  failed: "No pudimos activar los avisos. Revisa tu conexión e inténtalo de nuevo.",
   denied: "Los avisos están bloqueados para este sitio y el navegador ya no vuelve a preguntar. Para activarlos: en Chrome o Edge toca el ícono a la izquierda de la dirección › Notificaciones › Permitir; en Safari para Mac, Safari › Configuración › Sitios web › Notificaciones › Permitir; en iPhone, agrega la app a Inicio y actívalos en Configuración › Notificaciones › TechCatálogo. Después recarga la página.",
 };
 
@@ -29,6 +29,8 @@ export default function initNotificationControl({
   let notice = notificationPermission.getState() === "denied" ? "denied" : null;
   let subscribed = false;
   let busy = false;
+  // Nombre del error del navegador o del backend, para saber en qué paso falló la suscripción.
+  let failureDetail = "";
 
   function active(state) {
     return state === "granted" && (!usesPush || subscribed);
@@ -44,7 +46,8 @@ export default function initNotificationControl({
 
     if (notice === "denied" && state !== "denied") notice = null;
     if (hint) hint.hidden = notice === null;
-    if (message) message.textContent = notice ? NOTIFICATION_MESSAGES[notice] : "";
+    const detail = notice === "failed" && failureDetail ? ` (Detalle: ${failureDetail})` : "";
+    if (message) message.textContent = notice ? NOTIFICATION_MESSAGES[notice] + detail : "";
   }
 
   async function run(action) {
@@ -73,6 +76,7 @@ export default function initNotificationControl({
       return "subscribed";
     } catch (error) {
       console.warn("[Push] No se pudo activar la suscripción:", error);
+      failureDetail = [error?.name, error?.message].filter(Boolean).join(": ").slice(0, 160);
       return "failed";
     }
   }
