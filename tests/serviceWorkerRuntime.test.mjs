@@ -14,6 +14,7 @@ const expectedAppShell = [
   "./scope-demo/index.html",
   "./manifest.json",
   "./icons/favicon-32.png",
+  "./icons/badge-96.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-512-maskable.png",
@@ -121,12 +122,12 @@ test("sw.js precaches the app shell during install and removes old versions on a
   const serviceWorkerScriptUrl = "https://example.com/ejercicios/sw.js";
   const cache = {
     addAll: async (resources) => {
-      openedCaches.set("tech-catalogo-shell-v17", [...resources]);
+      openedCaches.set("tech-catalogo-shell-v18", [...resources]);
     },
   };
   const cachesObject = {
     open: async (name) => {
-      assert.equal(name, "tech-catalogo-shell-v17");
+      assert.equal(name, "tech-catalogo-shell-v18");
       return cache;
     },
     keys: async () => [
@@ -142,7 +143,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
       "tech-catalogo-shell-v9",
       "tech-catalogo-shell-v10",
       "tech-catalogo-shell-v11",
-      "tech-catalogo-shell-v17",
+      "tech-catalogo-shell-v18",
     ],
     delete: async (name) => {
       deletedCaches.push(name);
@@ -177,7 +178,7 @@ test("sw.js precaches the app shell during install and removes old versions on a
   listeners.install({ waitUntil(promise) { installWaitUntilCount += 1; installPromise = promise; } });
   await installPromise;
   assert.equal(installWaitUntilCount, 1);
-  const precacheList = openedCaches.get("tech-catalogo-shell-v17");
+  const precacheList = openedCaches.get("tech-catalogo-shell-v18");
   assert.deepEqual(
     precacheList.map((request) => request.url),
     expectedAppShell.map((resource) => new URL(resource, serviceWorkerScriptUrl).href),

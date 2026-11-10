@@ -372,6 +372,7 @@ test("a JSON push shows its notification inside waitUntil with the route resolve
   assert.equal(notification.body, "Guardamos «Docker» en el servidor.");
   assert.equal(notification.tag, "sugerencias-enviadas");
   assert.equal(notification.icon, "https://example.com/ejercicios/icons/icon-192.png");
+  assert.equal(notification.badge, "https://example.com/ejercicios/icons/badge-96.png");
   assert.equal(notification.data.url, "https://example.com/ejercicios/#/sugerencias");
 
   // El clic reutiliza el notificationclick del ejercicio 5.

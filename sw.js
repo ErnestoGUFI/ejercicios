@@ -1,7 +1,7 @@
 // Configuración y cliente del backend, compartidos con la página (src/pwa/backend.js).
 importScripts("./src/pwa/backend.js");
 
-const CACHE_VERSION = "tech-catalogo-shell-v17";
+const CACHE_VERSION = "tech-catalogo-shell-v18";
 const CACHE_PREFIX = "tech-catalogo-shell-v";
 const HACKER_NEWS_ORIGIN = "https://hacker-news.firebaseio.com";
 const NETWORK_FIRST_URL = new URL("./cache-demo.json", self.registration.scope).href;
@@ -20,6 +20,7 @@ const APP_SHELL = [
   "./scope-demo/index.html",
   "./manifest.json",
   "./icons/favicon-32.png",
+  "./icons/badge-96.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-512-maskable.png",
@@ -240,7 +241,8 @@ async function showSentNotification(topics) {
   await self.registration.showNotification(title, {
     body,
     icon: new URL("./icons/icon-192.png", self.registration.scope).href,
-    badge: new URL("./icons/favicon-32.png", self.registration.scope).href,
+    // Android usa solo la silueta del badge: un PNG blanco con transparencia, no el favicon a color.
+    badge: new URL("./icons/badge-96.png", self.registration.scope).href,
     lang: "es",
     // Con el mismo tag, un aviso nuevo reemplaza al anterior en lugar de apilarse.
     tag: SENT_NOTIFICATION_TAG,
@@ -269,7 +271,8 @@ async function showPushNotification(message) {
   await self.registration.showNotification(title, {
     body: typeof message.body === "string" ? message.body : "",
     icon: new URL("./icons/icon-192.png", self.registration.scope).href,
-    badge: new URL("./icons/favicon-32.png", self.registration.scope).href,
+    // Android usa solo la silueta del badge: un PNG blanco con transparencia, no el favicon a color.
+    badge: new URL("./icons/badge-96.png", self.registration.scope).href,
     lang: "es",
     tag: typeof message.tag === "string" && message.tag ? message.tag : PUSH_FALLBACK_TAG,
     data: { url: appUrl(message.url) },
