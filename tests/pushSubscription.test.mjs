@@ -80,9 +80,15 @@ test("base64UrlToBytes decodes the VAPID public key", () => {
 function createPushWindow({ permission = "granted", existing = null, key = "AQID" } = {}) {
   const log = [];
   let current = existing;
+  // Como el navegador: subscribe() devuelve la suscripción vigente si la llave coincide y falla si es otra.
+  const live = () => (current && !current.unsubscribed ? current : null);
   const pushManager = {
-    getSubscription: async () => current,
+    getSubscription: async () => live(),
     async subscribe(options) {
+      if (live()) {
+        if (new Uint8Array(live().options.applicationServerKey).join() === [...options.applicationServerKey].join()) return live();
+        throw Object.assign(new Error("A subscription with a different applicationServerKey already exists"), { name: "AbortError" });
+      }
       log.push(["subscribe", options.userVisibleOnly, [...options.applicationServerKey]]);
       current = createSubscription("https://push.example/nueva", options.applicationServerKey);
       return current;
@@ -95,7 +101,7 @@ function createPushWindow({ permission = "granted", existing = null, key = "AQID
       toJSON: () => ({ endpoint, keys: { p256dh: "p", auth: "a" } }),
       async unsubscribe() {
         log.push(["unsubscribe", endpoint]);
-        current = null;
+        this.unsubscribed = true;
         return true;
       },
     };
@@ -195,6 +201,7 @@ function createControl({ permission = "default", decide = "granted", subscribed 
   const calls = [];
   const notificationPermission = {
     getState: () => state,
+    refresh() {},
     async request() {
       calls.push("permission");
       if (state === "default") state = decide;
@@ -207,8 +214,11 @@ function createControl({ permission = "default", decide = "granted", subscribed 
   };
   const pushSubscription = {
     supported: true,
+    // Como pushManager.subscribe(): si el permiso no se ha decidido, lo pide.
     async subscribe() {
       calls.push("subscribe");
+      if (state === "default") state = decide;
+      if (state !== "granted") throw Object.assign(new Error("denied"), { name: "NotAllowedError" });
       if (failSubscribe) throw new Error("503");
       subscribed = true;
     },
@@ -234,20 +244,20 @@ function createControl({ permission = "default", decide = "granted", subscribed 
   return { button, hint, message, calls, click: () => handlers.click() };
 }
 
-test("the shell control subscribes after the permission and unsubscribes from the same button", async () => {
+test("the shell control subscribes straight from the tap (asking the permission) and unsubscribes from the same button", async () => {
   const control = createControl();
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal(control.button.textContent, NOTIFICATION_LABELS.default);
 
   await control.click();
-  assert.deepEqual(control.calls, ["permission", "subscribe"]);
+  assert.deepEqual(control.calls, ["subscribe"]);
   assert.equal(control.button.textContent, NOTIFICATION_LABELS.granted);
   assert.equal(control.button.attributes["aria-pressed"], "true");
   assert.equal(control.button.disabled, false);
   assert.equal(control.message.textContent, NOTIFICATION_MESSAGES.subscribed);
 
   await control.click();
-  assert.deepEqual(control.calls, ["permission", "subscribe", "unsubscribe"]);
+  assert.deepEqual(control.calls, ["subscribe", "unsubscribe"]);
   assert.equal(control.button.textContent, NOTIFICATION_LABELS.default);
   assert.equal(control.button.attributes["aria-pressed"], "false");
   assert.equal(control.message.textContent, NOTIFICATION_MESSAGES.unsubscribed);
@@ -267,7 +277,7 @@ test("an already subscribed device opens with Avisos activados; a failed subscri
   } finally {
     console.warn = originalWarn;
   }
-  assert.deepEqual(failing.calls, ["permission", "subscribe"]);
+  assert.deepEqual(failing.calls, ["subscribe"]);
   assert.equal(failing.button.textContent, NOTIFICATION_LABELS.default);
   assert.equal(failing.message.textContent, `${NOTIFICATION_MESSAGES.failed} (Detalle: Error: 503)`);
 });
@@ -357,4 +367,14 @@ test("the VAPID key is fetched once when the app opens, so the tap goes straight
   // Lo primero tras el toque es pushManager.subscribe(); la llave ya estaba descargada.
   assert.deepEqual(log.map(([kind]) => kind), ["subscribe", "backend"]);
   assert.equal(log.filter(([, , path]) => path === "/push/public-key").length, 0);
+});
+
+test("rejecting the prompt that subscribe() opens moves the control to denied", async () => {
+  const control = createControl({ decide: "denied" });
+
+  await control.click();
+
+  assert.deepEqual(control.calls, ["subscribe"]);
+  assert.equal(control.button.textContent, NOTIFICATION_LABELS.denied);
+  assert.equal(control.message.textContent, NOTIFICATION_MESSAGES.denied);
 });

@@ -62,22 +62,29 @@ export default function initNotificationControl({
   }
 
   async function activate() {
-    const result = await notificationPermission.request();
-    if (result === "denied") return "denied";
-    if (result !== "granted") return null;
     if (!usesPush) {
+      const result = await notificationPermission.request();
+      if (result === "denied") return "denied";
+      if (result !== "granted") return null;
       await setNotificationsEnabled(true);
       return "granted";
     }
 
+    // Con push, pushManager.subscribe() va primero (Safari lo exige dentro del toque) y pide el permiso si hace falta.
     try {
       await pushSubscription.subscribe();
       subscribed = true;
       return "subscribed";
     } catch (error) {
+      notificationPermission.refresh?.();
+      const state = notificationPermission.getState();
+      if (state === "denied") return "denied";
+      if (state === "default") return null;
       console.warn("[Push] No se pudo activar la suscripción:", error);
       failureDetail = [error?.name, error?.message].filter(Boolean).join(": ").slice(0, 160);
       return "failed";
+    } finally {
+      notificationPermission.refresh?.();
     }
   }
 

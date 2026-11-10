@@ -52,18 +52,41 @@ export function createPushSubscription({
     await expect(await backend.request("/push/subscriptions", { method: "POST", body: subscription.toJSON() }), "Guardar suscripción");
   }
 
-  // Requiere el permiso concedido. Si las llaves VAPID cambiaron, la suscripción vieja ya no sirve y se rehace.
-  async function subscribe() {
-    const applicationServerKey = await loadPublicKey();
-    const registration = await getRegistration();
-    let subscription = await registration.pushManager.getSubscription();
-
-    if (subscription && !sameKey(subscription.options?.applicationServerKey, applicationServerKey)) {
-      await subscription.unsubscribe();
-      subscription = null;
+  // Lo que Safari necesita listo antes del toque: la llave, el registro del Service Worker y la suscripción actual.
+  let prepared = null;
+  let knownEndpoint = null;
+  async function prepare() {
+    if (!supported) return false;
+    try {
+      const [applicationServerKey, registration] = await Promise.all([loadPublicKey(), getRegistration()]);
+      knownEndpoint = (await registration.pushManager.getSubscription())?.endpoint ?? null;
+      prepared = { applicationServerKey, registration };
+      return true;
+    } catch (error) {
+      logger.warn("[Push] No se pudo preparar la suscripción:", error);
+      return false;
     }
-    const created = !subscription;
-    subscription ??= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
+  }
+
+  // Safari solo acepta pushManager.subscribe() durante el gesto del usuario: con prepare() hecho al abrir la app,
+  // es lo primero que se ejecuta tras el toque. Si el permiso no se ha decidido, esta llamada lo pide.
+  async function subscribe() {
+    if (!prepared && !(await prepare())) throw new Error("No se pudo preparar la suscripción");
+    const { registration, applicationServerKey } = prepared;
+    const options = { userVisibleOnly: true, applicationServerKey };
+
+    let subscription;
+    try {
+      subscription = await registration.pushManager.subscribe(options);
+    } catch (error) {
+      // Si las llaves VAPID cambiaron, la suscripción vieja impide crear la nueva: se da de baja y se repite.
+      const old = await registration.pushManager.getSubscription();
+      if (!old || sameKey(old.options?.applicationServerKey, applicationServerKey)) throw error;
+      await old.unsubscribe();
+      subscription = await registration.pushManager.subscribe(options);
+    }
+
+    const created = subscription.endpoint !== knownEndpoint;
     try {
       await saveOnBackend(subscription);
     } catch (error) {
@@ -71,6 +94,7 @@ export function createPushSubscription({
       if (created) await subscription.unsubscribe().catch(() => false);
       throw error;
     }
+    knownEndpoint = subscription.endpoint;
     await setNotificationsEnabled(true);
     return subscription;
   }
@@ -89,6 +113,7 @@ export function createPushSubscription({
     } finally {
       // Aunque el backend no responda, el navegador la da de baja; el siguiente envío recibirá 410 y la borrará.
       await subscription.unsubscribe();
+      knownEndpoint = null;
     }
   }
 
@@ -112,7 +137,7 @@ export function createPushSubscription({
 
   return {
     supported,
-    prepare: () => (supported ? loadPublicKey().then(() => true, () => false) : Promise.resolve(false)),
+    prepare,
     subscribe,
     unsubscribe,
     resync,

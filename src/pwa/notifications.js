@@ -52,6 +52,8 @@ export function createNotificationPermission({ browserWindow = globalThis.window
   const api = {
     init,
     request,
+    // Vuelve a leer el permiso: pushManager.subscribe() también puede pedirlo.
+    refresh: update,
     getState: () => state,
     subscribe(listener) {
       listeners.add(listener);
